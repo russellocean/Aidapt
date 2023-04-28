@@ -2,7 +2,7 @@
 # from .langchain_agent import initialize_langchain_agent
 import ai_agent.external_apis as external_apis
 import ai_agent.langchain_agent  # noqa: F401
-import ui.prompts  # noqa: F401
+import ui.prompts as prompts  # noqa: F401
 
 
 class AI_Agent:
