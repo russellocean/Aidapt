@@ -62,7 +62,7 @@ def clone_repo_to_local_folder(repo_url):
 def get_user_input():
     # Get the user input (e.g., text command or button press)
     # Return the user input as a string
-    user_input = input("Enter your command: ")
+    user_input = input("Enter your objective: ")
     return user_input
 
 
@@ -74,7 +74,5 @@ def display_response(ai_response):
 
 def user_wants_to_exit(user_input):
     # Check if the user wants to exit the interaction loop
-    # Return a boolean value
-    return user_input.strip().lower() == "exit"
     # Return a boolean value
     return user_input.strip().lower() == "exit"

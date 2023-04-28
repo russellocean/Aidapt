@@ -1,8 +1,8 @@
 # from .external_apis import initialize_external_apis
 # from .langchain_agent import initialize_langchain_agent
-import external_apis
-import langchain_agent
-import prompts
+import ai_agent.external_apis as external_apis
+import ai_agent.langchain_agent  # noqa: F401
+import ui.prompts  # noqa: F401
 
 
 class AI_Agent:
@@ -10,7 +10,6 @@ class AI_Agent:
         # self.langchain_agent = initialize_langchain_agent(codebase_database)
         # self.external_apis = initialize_external_apis()
         self.codebase_database = codebase_database
-        ...
 
     def create_prompt(self, user_request, context_vector):
         prompt = prompts.build_prompt(user_request, context_vector)
@@ -47,5 +46,4 @@ class AI_Agent:
     def implement_new_feature(self, feature_description):
         # Implement the new feature based on the provided description
         # Return the updated code or a summary of changes
-        ...
         ...

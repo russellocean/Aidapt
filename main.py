@@ -34,6 +34,7 @@ def interaction_loop(ai_agent):
     while True:
         # Get user input (e.g., text command or button press)
         user_input = get_user_input()
+        print(f"User input: {user_input}")
 
         # Process the user input and perform the requested action using the AI agent
         ai_response = ai_agent.process_input(user_input)

@@ -1,26 +1,93 @@
-import faiss  # noqa: F401
-import file_parser  # noqa: F401
+import os
+from glob import glob
+
+import faiss
+import numpy as np
+
+from ai_agent.external_apis import get_embedding
+from database.file_parser import get_functions
 
 
 class CodebaseDatabase:
     def __init__(self, project_folder):
         self.project_folder = project_folder
+        self.documents = self.load_documents()
         self.faiss_index = self.create_vector_database()
 
+    def load_documents(self):
+        code_files = [
+            y
+            for x in os.walk(self.project_folder)
+            for y in glob(os.path.join(x[0], "*.py"))
+        ]
+        all_funcs = []
+
+        for code_file in code_files:
+            funcs = list(get_functions(code_file))
+            for func in funcs:
+                all_funcs.append(func)
+
+        print(f"Loaded {len(all_funcs)} functions from {len(code_files)} files.")
+        return all_funcs
+
     def create_vector_database(self):
-        # Convert codebase information into high-dimensional vectors
-        pass
+        embeddings = []
 
-    def update_vector_database(self, new_information):
-        # Update the FAISS vector database with new information
-        pass
+        print("Generating embeddings for loaded functions...")
+        for document in self.documents:
+            code = document["code"]
+            embedding = get_embedding(code)
+            embeddings.append(embedding)
+        print("Embeddings generated.")
 
-    def search_vector_database(self, query):
-        # Perform a search in the FAISS vector database
-        pass
+        # print("Embeddings of loaded functions:")
+        # for i, embedding in enumerate(embeddings):
+        #     print(f"{i + 1}: {embedding}")
+
+        index = self.create_faiss_index(embeddings)
+        return index
+
+    def create_faiss_index(self, vectors):
+        dimension = len(vectors[0])
+        index = faiss.IndexFlatL2(dimension)
+        index.add(np.array(vectors).astype("float32"))
+        return index
+
+    def update_faiss_index(self, new_information):
+        new_vector = get_embedding(new_information["code"])
+        self.faiss_index.add(np.array([new_vector]).astype("float32"))
+
+    def search_faiss_index(self, query, k=5):
+        query_vector = get_embedding(query)
+        distances, indices = self.faiss_index.search(
+            np.array([query_vector]).astype("float32"), k
+        )
+        results = [
+            {"document": self.documents[i], "distance": distances[0][j]}
+            for j, i in enumerate(indices[0])
+        ]
+        return results
 
 
 def convert_to_database(project_folder):
     codebase_database = CodebaseDatabase(project_folder)
     return codebase_database
-    return codebase_database
+
+
+def main():
+    project_folder = "/Users/russellocean/Dev/ProjectGPT"
+    codebase_database = CodebaseDatabase(project_folder)
+    query = "def convert_to_database():\n    pass"
+    results = codebase_database.search_faiss_index(query)
+
+    print(f"Search query:\n{query}\n")
+    print("Search results:")
+    for i, result in enumerate(results, start=1):
+        print(f"\n{i}. Function: {result['document']['function_name']}")
+        print(f"   Filepath: {result['document']['filepath']}")
+        print(f"   Distance: {result['distance']:.6f}")
+        print(f"   Code snippet:\n{result['document']['code']}")
+
+
+if __name__ == "__main__":
+    main()
