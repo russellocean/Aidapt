@@ -6,6 +6,7 @@ import numpy as np
 
 from ai_agent.external_apis import get_embedding
 from database.file_parser import get_functions
+from utils import print_search_results
 
 
 class CodebaseDatabase:
@@ -77,16 +78,11 @@ def convert_to_database(project_folder):
 def main():
     project_folder = "/Users/russellocean/Dev/ProjectGPT"
     codebase_database = CodebaseDatabase(project_folder)
-    query = "def convert_to_database():\n    pass"
+
+    query = input("Enter your search query: ")
     results = codebase_database.search_faiss_index(query)
 
-    print(f"Search query:\n{query}\n")
-    print("Search results:")
-    for i, result in enumerate(results, start=1):
-        print(f"\n{i}. Function: {result['document']['function_name']}")
-        print(f"   Filepath: {result['document']['filepath']}")
-        print(f"   Distance: {result['distance']:.6f}")
-        print(f"   Code snippet:\n{result['document']['code']}")
+    print_search_results(query, results)
 
 
 if __name__ == "__main__":
