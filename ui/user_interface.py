@@ -19,11 +19,17 @@ def receive_choice(choices):
 
 
 def choose_project_source():
-    # Prompt the user to choose between a folder or a repository
-    # Return the user's choice as a string ("folder" or "repository")
-    display_prompt("Choose a project source (folder or repository):")
-    choice = receive_choice(["folder", "repository"])
-    return choice
+    # Prompt the user to choose between a folder, a repository, or none
+    # Return the user's choice as a string ("folder", "repository", or "none")
+    while True:
+        project_source = input(
+            "Enter the project source (folder/repository/none): "
+        ).lower()
+
+        if project_source in ["folder", "repository", "none"]:
+            return project_source
+        else:
+            print("Invalid project source. Please enter folder, repository, or none.")
 
 
 def get_project_folder():

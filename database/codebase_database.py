@@ -70,8 +70,11 @@ class CodebaseDatabase:
         return results
 
 
-def convert_to_database(project_folder):
-    codebase_database = CodebaseDatabase(project_folder)
+def convert_to_database(project_folder, project_source):
+    if project_source != "none":
+        codebase_database = CodebaseDatabase(project_folder)
+    else:
+        codebase_database = None
     return codebase_database
 
 

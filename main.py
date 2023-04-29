@@ -15,13 +15,14 @@ def main():
     # Step 1: Initialize project
     project_source = choose_project_source()
 
+    project_folder = None
     if project_source == "folder":
         project_folder = get_project_folder()
     elif project_source == "repository":
         project_folder = clone_repository()
 
     # Step 2: Convert project to AI-friendly database
-    codebase_database = convert_to_database(project_folder)
+    codebase_database = convert_to_database(project_folder, project_source)
 
     # Step 3: Create AI agent with necessary tools
     ai_agent = AI_Agent(codebase_database)
@@ -43,7 +44,7 @@ def interaction_loop(ai_agent):
         display_response(ai_response)
 
         # Check if the user wants to exit the interaction loop
-        if user_wants_to_exit():
+        if user_wants_to_exit(user_input):
             break
 
 

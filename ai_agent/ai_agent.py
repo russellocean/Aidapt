@@ -1,49 +1,93 @@
-# from .external_apis import initialize_external_apis
-# from .langchain_agent import initialize_langchain_agent
-import ai_agent.external_apis as external_apis
+import json
+import os
+
+import openai
+from dotenv import load_dotenv
+from tools import api_request, calculate, edit_file, git_command, search, view_file
+
 import ai_agent.langchain_agent  # noqa: F401
-import ui.prompts as prompts  # noqa: F401
+from ui.prompts import build_prompt
+
+# Load the variables from the .env file
+load_dotenv()
+
+# Access the variables using the os module
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class AI_Agent:
-    def __init__(self, codebase_database):
-        # self.langchain_agent = initialize_langchain_agent(codebase_database)
-        # self.external_apis = initialize_external_apis()
+    def __init__(self, codebase_database=None):
         self.codebase_database = codebase_database
 
-    def create_prompt(self, user_request, context_vector):
-        prompt = prompts.build_prompt(user_request, context_vector)
+    def create_prompt(self, user_request, context_vector=None):
+        prompt = build_prompt(user_request, context_vector)
         return prompt
 
     def process_input(self, user_request):
-        context_vector = self.codebase_database.search_vector_database(user_request)
-        prompt = self.create_prompt(user_request, context_vector)
-        ai_response = langchain_agent.get_response(prompt)
-        commands_and_parameters = external_apis.parse_ai_response(ai_response)
-        execution_results = external_apis.execute_commands(commands_and_parameters)
-        self.codebase_database.update_vector_database(execution_results)
-        return execution_results
+        # If there's a codebase database, search for the context vector related to the user request
+        if self.codebase_database:
+            context_vector = self.codebase_database.search_faiss_index(user_request)
+            # Create a prompt for the AI agent using the user request and context vector
+            prompt = self.create_prompt(user_request, context_vector)
+        # If there's no codebase database, use the user request as the prompt
+        else:
+            prompt = self.create_prompt(user_request)
 
-    def parse_command(self, user_input):
-        # Parse the user input into a command
-        # Return the command object
-        ...
+        # Ask the AI agent to provide a response for the given prompt
+        ai_response = self.ask_agent(prompt)
+        # Parse the AI response to obtain commands and parameters
+        commands_and_parameters = self.parse_ai_response(ai_response)
 
-    def execute_command(self, command):
-        # Execute the command using the Langchain agent and external APIs
-        # Return the AI response
+        # If there's a codebase database, execute the commands and update the database
+        if self.codebase_database:
+            execution_results = self.execute_commands(commands_and_parameters)
+            self.codebase_database.update_faiss_index(execution_results)
+            return execution_results
+        # If there's no codebase database, return the AI response directly
+        else:
+            return ai_response
 
-        # Example commands and corresponding functions:
-        # - "Refactor Code": self.refactor_code()
-        # - "Implement a new page ...": self.implement_new_feature()
-        ...
+    def ask_agent(self, prompt):
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            temperature=0.2,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+        )
 
-    def refactor_code(self):
-        # Refactor the code using the Langchain agent and external APIs
-        # Return the refactored code or a summary of changes
-        ...
+        ai_response = response.choices[0].message.content.strip()
+        # print(f"AI response: {ai_response}")
+        return ai_response
 
-    def implement_new_feature(self, feature_description):
-        # Implement the new feature based on the provided description
-        # Return the updated code or a summary of changes
-        ...
+    def parse_ai_response(self, ai_response):
+        try:
+            commands_and_parameters = json.loads(ai_response)
+        except json.JSONDecodeError:
+            print("Error parsing AI response. Please check the response format.")
+            commands_and_parameters = {}
+
+        return commands_and_parameters
+
+    def execute_commands(self, commands_and_parameters):
+        command_name = commands_and_parameters.get("command")
+        parameters = commands_and_parameters.get("parameters", {})
+
+        if command_name in self.available_commands:
+            execution_result = self.available_commands[command_name](**parameters)
+        else:
+            print(
+                f"Command '{command_name}' not recognized. Please check the command name."
+            )
+            execution_result = {}
+
+        return execution_result
+
+    # Define your available commands and corresponding functions here
+    available_commands = {
+        "Search": search,
+        "ViewFile": view_file,
+        "EditFile": edit_file,
+        "Calculate": calculate,
+        "APIRequest": api_request,
+        "Git": git_command,
+    }

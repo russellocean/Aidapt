@@ -1,22 +1,25 @@
-def build_prompt(user_request, context_vector):
-    context_vector_details = []
+def build_prompt(user_request, context_vector=None):
+    if context_vector:
+        context_vector_details = []
 
-    for idx, result in enumerate(context_vector):
-        document = result["document"]
-        distance = result["distance"]
-        code = document["code"]
-        function_name = document["function_name"]
-        filepath = document["filepath"]
+        for idx, result in enumerate(context_vector):
+            document = result["document"]
+            distance = result["distance"]
+            code = document["code"]
+            function_name = document["function_name"]
+            filepath = document["filepath"]
 
-        context_vector_details.append(
-            f"Result {idx + 1}:\n"
-            f"Function Name: {function_name}\n"
-            f"Filepath: {filepath}\n"
-            f"Code:\n{code}\n"
-            f"Relevance Score (lower is better): {distance}\n"
-        )
+            context_vector_details.append(
+                f"Result {idx + 1}:\n"
+                f"Function Name: {function_name}\n"
+                f"Filepath: {filepath}\n"
+                f"Code:\n{code}\n"
+                f"Relevance Score (lower is better): {distance}\n"
+            )
 
-    context_vector_summary = "\n".join(context_vector_details)
+        context_vector_summary = "\n".join(context_vector_details)
+    else:
+        context_vector_summary = "No context vector provided."
 
     prompt = (
         f"You are an expert software engineer utilizing the OpenAI GPT-4 API. Your goal is to help users navigate, understand, and improve their codebases. In order to achieve this, you will break down each problem into smaller steps, research deeply, and thoroughly understand the current codebase. You will also use intermediate steps and pseudocode when necessary.\n\n"
