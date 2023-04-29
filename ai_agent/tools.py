@@ -1,3 +1,16 @@
+import os
+import re
+
+import wolframalpha
+from dotenv import load_dotenv
+
+# Load the variables from the .env file
+load_dotenv()
+
+# Access the variables using the os module
+WOLFRAM_API_KEY = os.getenv("WOLFRAM_ALPHA_APPID")
+
+
 def search(query):
     # Pseudocode:
     # 1. Use Google search to find information related to the query
@@ -20,11 +33,29 @@ def edit_file(filepath, edits):
     ...
 
 
+def is_simple_expression(expression):
+    # Check if the given expression consists of only numbers, arithmetic operators, and parentheses
+    # Return True if the expression is simple, otherwise return False
+    return bool(re.match(r"^[\d\+\-\*/\(\)\.\s]*$", expression))
+
+
 def calculate(expression):
-    # Pseudocode:
-    # 1. Use Wolfram Alpha API to perform the calculation
-    # 2. Return the calculated result
-    ...
+    # If the expression is simple, use Python's eval() function to perform the calculation
+    if is_simple_expression(expression):
+        try:
+            result = eval(expression)
+            return str(result)
+        except:
+            return "Error: Invalid simple arithmetic expression."
+    # If the expression is complex, use the Wolfram Alpha API to perform the calculation
+    else:
+        client = wolframalpha.Client(WOLFRAM_API_KEY)
+        try:
+            res = client.query(expression)
+            result = next(res.results).text
+            return result
+        except:
+            return "Error: Could not calculate the expression using Wolfram Alpha API."
 
 
 def api_request(api_name, parameters):

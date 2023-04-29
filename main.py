@@ -42,11 +42,12 @@ def interaction_loop(ai_agent):
             break
 
         # Process the user input and perform the requested action using the AI agent
-        ai_response = ai_agent.process_input(user_input)
+        execution_results_list, ai_responses = ai_agent.process_input(user_input)
 
         # Display the AI response to the user
-        # display_response(ai_response)
-        display_response_table(ai_response)
+        for ai_response in ai_responses:
+            display_response_table(ai_response)
+            print("\n")
 
 
 if __name__ == "__main__":

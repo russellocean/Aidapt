@@ -1,10 +1,10 @@
 import json
 import os
+import re
 
 import openai
 from dotenv import load_dotenv
 
-import ai_agent.langchain_agent  # noqa: F401
 from ai_agent.tools import (
     api_request,
     calculate,
@@ -43,18 +43,24 @@ class AI_Agent:
         # Ask the AI agent to provide a response for the given prompt
         ai_response = self.ask_agent(prompt)
         # Parse the AI response to obtain commands, parameters, thoughts, criticisms, and additional info
-        response_data = self.parse_ai_response(ai_response)
+        response_data_list = self.parse_ai_response(ai_response)
 
-        # If there's a codebase database, execute the commands and update the database
-        if self.codebase_database:
+        execution_results_list = []
+        for response_data in response_data_list:
+            # Execute the commands
             execution_results = self.execute_commands(
                 response_data["commands_and_parameters"]
             )
-            self.codebase_database.update_faiss_index(execution_results)
-            return execution_results, response_data
-        # If there's no codebase database, return the AI response directly
-        else:
-            return response_data
+            execution_results_list.append(execution_results)
+
+            # If there's a codebase database, update the database
+            if self.codebase_database:
+                # TODO Readd this line
+                # self.codebase_database.update_faiss_index(execution_results)
+                ...
+
+        # Return the execution results list and response data list
+        return execution_results_list, response_data_list
 
     def ask_agent(self, prompt):
         response = openai.ChatCompletion.create(
@@ -69,21 +75,44 @@ class AI_Agent:
         return ai_response
 
     def parse_ai_response(self, ai_response):
-        try:
-            response_data = json.loads(ai_response)
-        except json.JSONDecodeError:
-            print("Error parsing AI response. Please check the response format.")
-            response_data = {}
+        # Find all JSON arrays in the AI response
+        json_array = re.findall(r"(\[\s*\{.*?\}\s*\])", ai_response, flags=re.DOTALL)
 
-        # Return a dictionary containing commands_and_parameters, thoughts, criticisms, and additional_info
-        return {
-            "commands_and_parameters": response_data.get(
-                "`commands_and_parameters`", {}
-            ),
-            "thoughts": response_data.get("thoughts", ""),
-            "criticisms": response_data.get("criticisms", ""),
-            "additional_info": response_data.get("additional_info", ""),
-        }
+        # print(f"JSON array: {json_array}")
+
+        # If a JSON array is found, parse it
+        if json_array:
+            try:
+                response_data_list = json.loads(json_array[0])
+            except json.JSONDecodeError:
+                print("Error parsing AI response. Please check the response format.")
+                print(f"AI response: {ai_response}")
+                response_data_list = []
+        else:
+            print("Error parsing AI response. Please check the response format.")
+            print(f"AI response: {ai_response}")
+            response_data_list = []
+
+        # Ensure the response data is a list
+        if not isinstance(response_data_list, list):
+            response_data_list = [response_data_list]
+
+        # Parse each response in the list
+        parsed_responses = []
+        for response_data in response_data_list:
+            parsed_responses.append(
+                {
+                    "commands_and_parameters": {
+                        "command": response_data.get("command", None),
+                        "parameters": response_data.get("parameters", {}),
+                    },
+                    "thoughts": response_data.get("thoughts", ""),
+                    "criticisms": response_data.get("criticisms", ""),
+                    "additional_info": response_data.get("additional_info", ""),
+                }
+            )
+
+        return parsed_responses
 
     def execute_commands(self, commands_and_parameters):
         command_name = commands_and_parameters.get("command")

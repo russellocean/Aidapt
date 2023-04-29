@@ -100,10 +100,16 @@ def display_response_table(ai_response):
     table.add_column("Category", justify="left", style="cyan", no_wrap=True)
     table.add_column("Description", style="magenta")
 
-    table.add_row(
-        "[bold green]Commands and Parameters:[/bold green]",
-        str(ai_response["commands_and_parameters"]),
+    command = ai_response["commands_and_parameters"]["command"]
+    parameters = ai_response["commands_and_parameters"]["parameters"]
+    formatted_parameters = "\n".join(
+        [f"  {key}: {value}" for key, value in parameters.items()]
     )
+
+    table.add_row("[bold green]Command:[/bold green]", command)
+    if formatted_parameters:
+        table.add_row("[bold green]Parameters:[/bold green]", formatted_parameters)
+
     table.add_row("[bold blue]Thoughts:[/bold blue]", ai_response["thoughts"])
 
     if ai_response["criticisms"] != "None":
