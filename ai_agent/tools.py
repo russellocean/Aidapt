@@ -1,7 +1,8 @@
 import os
 import re
+import subprocess
 
-import wolframalpha
+import requests
 from dotenv import load_dotenv
 
 # Load the variables from the .env file
@@ -9,45 +10,70 @@ load_dotenv()
 
 # Access the variables using the os module
 WOLFRAM_API_KEY = os.getenv("WOLFRAM_ALPHA_APPID")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GOOGLE_CSE_ID = os.getenv("GOOGLE_CSE_ID")
 
 
 def search(query):
-    # Pseudocode:
-    # 1. Use Google search to find information related to the query
-    # 2. Return search results or relevant information
-    ...
+    """
+    Use Google search to find information related to the query
+    and return search results or relevant information.
+    """
+    url = f"https://www.googleapis.com/customsearch/v1?key={GOOGLE_API_KEY}&cx={GOOGLE_CSE_ID}&q={query}"
+    response = requests.get(url)
+    data = response.json()
+
+    search_items = data.get("items", [])
+    results = []
+    for search_item in search_items:
+        title = search_item.get("title")
+        link = search_item.get("link")
+        results.append({"title": title, "link": link})
+
+    return results
 
 
 def view_file(filepath):
-    # Pseudocode:
-    # 1. Read the content of the file at the given filepath
-    # 2. Return the file content
-    ...
+    """
+    Read the content of the file at the given filepath
+    and return the file content.
+    """
+    try:
+        with open(filepath, "r") as file:
+            content = file.read()
+        return content
+    except FileNotFoundError:
+        return f"Error: File not found at {filepath}"
 
 
 def edit_file(filepath, edits):
-    # Pseudocode:
-    # 1. Apply the specified edits to the file at the given filepath
-    # 2. Save the file
-    # 3. Return the edited file content or a summary of changes
+    """
+    Apply the specified edits to the file at the given filepath,
+    save the file, and return the edited file content or a summary of changes.
+    """
+    # Implement the edit functionality as needed, e.g., using regex, parsers, etc.
     ...
 
 
 def is_simple_expression(expression):
-    # Check if the given expression consists of only numbers, arithmetic operators, and parentheses
-    # Return True if the expression is simple, otherwise return False
+    """
+    Check if the given expression consists of only numbers, arithmetic operators, and parentheses.
+    Return True if the expression is simple, otherwise return False.
+    """
     return bool(re.match(r"^[\d\+\-\*/\(\)\.\s]*$", expression))
 
 
 def calculate(expression):
-    # If the expression is simple, use Python's eval() function to perform the calculation
+    """
+    If the expression is simple, use Python's eval() function to perform the calculation.
+    If the expression is complex, use the Wolfram Alpha API to perform the calculation.
+    """
     if is_simple_expression(expression):
         try:
             result = eval(expression)
             return str(result)
         except:
             return "Error: Invalid simple arithmetic expression."
-    # If the expression is complex, use the Wolfram Alpha API to perform the calculation
     else:
         client = wolframalpha.Client(WOLFRAM_API_KEY)
         try:
@@ -59,16 +85,75 @@ def calculate(expression):
 
 
 def api_request(api_name, parameters):
-    # Pseudocode:
-    # 1. Make a request to the specified API with the given parameters
-    # 2. Handle the API response
-    # 3. Return the relevant information or actions from the API response
+    """
+    Make a request to the specified API with the given parameters,
+    handle the API response, and return the relevant information or actions
+    from the API response.
+    """
+    # Implement the API request functionality as needed, e.g., using requests, etc.
     ...
 
 
 def git_command(command, parameters):
-    # Pseudocode:
-    # 1. Execute the Git command with the specified parameters
-    # 2. Handle the command output or any errors
-    # 3. Return the command output or a summary of the action taken
-    ...
+    """
+    Execute the Git command with the specified parameters,
+    handle the command output or any errors, and return the command
+    output or a summary of the action taken.
+    """
+    cmd = ["git"] + command.split() + [str(p) for p in parameters.values()]
+    try:
+        output = subprocess.check_output(cmd, stderr=subprocess.STDOUT).decode("utf-8")
+        return output
+    except subprocess.CalledProcessError as e:
+        return f"Error: {e.output.decode('utf-8')}"
+
+
+def create_file(filepath, content):
+    """
+    Create a new file at the given filepath with the specified content.
+    """
+    try:
+        with open(filepath, "w") as file:
+            file.write(content)
+        return f"Successfully created file at {filepath}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def delete_file(filepath):
+    """
+    Delete the file at the given filepath.
+    """
+    try:
+        os.remove(filepath)
+        return f"Successfully deleted file at {filepath}"
+    except FileNotFoundError:
+        return f"Error: File not found at {filepath}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def rename_file(old_filepath, new_filepath):
+    """
+    Rename the file at the given old_filepath to the new_filepath.
+    """
+    try:
+        os.rename(old_filepath, new_filepath)
+        return f"Successfully renamed file from {old_filepath} to {new_filepath}"
+    except FileNotFoundError:
+        return f"Error: File not found at {old_filepath}"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
+def run_tests(test_command):
+    """
+    Run tests using the specified test command and return the test results.
+    """
+    try:
+        output = subprocess.check_output(
+            test_command.split(), stderr=subprocess.STDOUT
+        ).decode("utf-8")
+        return output
+    except subprocess.CalledProcessError as e:
+        return f"Error: {e.output.decode('utf-8')}"
