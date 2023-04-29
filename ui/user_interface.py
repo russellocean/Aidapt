@@ -1,8 +1,10 @@
 import os
 
 import git
+import rich
 from rich.console import Console
 from rich.table import Table
+from rich.text import Text
 
 console = Console()
 
@@ -95,28 +97,31 @@ def display_response(ai_response):
 
 
 def display_response_table(ai_response):
-    table = Table(title="AI Response", show_header=False)
+    table = Table(show_header=False, box=rich.box.ROUNDED, pad_edge=True)
 
-    table.add_column("Category", justify="left", style="cyan", no_wrap=True)
-    table.add_column("Description", style="magenta")
+    table.add_column("Category", justify="left", style="bold", no_wrap=True)
+    table.add_column("Description", style="none")
 
     command = ai_response["commands_and_parameters"]["command"]
     parameters = ai_response["commands_and_parameters"]["parameters"]
     formatted_parameters = "\n".join(
-        [f"  {key}: {value}" for key, value in parameters.items()]
+        [f"{key}: {value}" for key, value in parameters.items()]
     )
 
-    table.add_row("[bold green]Command:[/bold green]", command)
+    table.add_row(Text("Command:", style="bold cyan"), Text(command, style="cyan"))
     if formatted_parameters:
-        table.add_row("[bold green]Parameters:[/bold green]", formatted_parameters)
+        table.add_row(
+            Text("Parameters:", style="bold cyan"),
+            Text(formatted_parameters, style="cyan"),
+        )
 
-    table.add_row("[bold blue]Thoughts:[/bold blue]", ai_response["thoughts"])
+    table.add_row(Text("Thoughts:", style="bold blue"), ai_response["thoughts"])
 
     if ai_response["criticisms"] != "None":
-        table.add_row("[bold red]Criticisms:[/bold red]", ai_response["criticisms"])
+        table.add_row(Text("Criticisms:", style="bold red"), ai_response["criticisms"])
 
     table.add_row(
-        "[bold magenta]Additional Info:[/bold magenta]", ai_response["additional_info"]
+        Text("Additional Info:", style="bold magenta"), ai_response["additional_info"]
     )
 
     console.print(table)

@@ -119,7 +119,16 @@ class AI_Agent:
         parameters = commands_and_parameters.get("parameters", {})
 
         if command_name in self.available_commands:
-            execution_result = self.available_commands[command_name](**parameters)
+            try:
+                execution_result = self.available_commands[command_name](**parameters)
+            except TypeError as e:
+                print(
+                    f"Error executing command: {command_name} with parameters: {parameters}"
+                )
+                print(f"Exception: {e}")
+                execution_result = {
+                    "error": f"Failed to execute command '{command_name}' with parameters: {parameters}. Exception: {e}"
+                }
         else:
             print(
                 f"Command '{command_name}' not recognized. Please check the command name."
