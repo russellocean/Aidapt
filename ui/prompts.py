@@ -30,17 +30,20 @@ def build_prompt(user_request, context_vector=None):
         f"4. Calculate - Use Wolfram Alpha to perform complex calculations.\n"
         f"5. APIRequest - Make requests to various APIs for specific information or actions.\n"
         f"6. Git - Utilize Git commands to interact with the codebase repository.\n\n"
-        f"Please return your responses in the following JSON format to extract commands and their input variables:\n\n"
+        f"Please return your responses in the following JSON format to extract commands, their input variables, thought processes, criticisms, and additional response information:\n\n"
         f"{{\n"
         f'  "command": "<command_name>",\n'
         f'  "parameters": {{\n'
         f'    "<parameter_name>": "<parameter_value>",\n'
         f"    ...\n"
-        f"  }}\n"
+        f"  }},\n"
+        f'  "thoughts": "<thought_process>",\n'
+        f'  "criticisms": "<criticisms>",\n'
+        f'  "additional_info": "<additional_response_information>"\n'
         f"}}\n\n"
-        f'Now, given the user\'s request: "{user_request}", please provide your detailed response with the necessary steps and commands.\n\n'
+        f'Now, given the user\'s request: "{user_request}", please provide your detailed response with the necessary steps and commands, including your thought process, any criticism, and additional response information that will help achieve the objective.\n\n'
         f"Based on the context vector provided, the following relevant results have been found:\n\n"
-        f"{context_vector_summary}"
+        f"{context_vector_summary}\n\n"
     )
 
     return prompt

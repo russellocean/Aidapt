@@ -3,7 +3,7 @@ from database.codebase_database import convert_to_database
 from ui.user_interface import (
     choose_project_source,
     clone_repository,
-    display_response,
+    display_response_table,
     get_project_folder,
     get_user_input,
     user_wants_to_exit,
@@ -37,15 +37,16 @@ def interaction_loop(ai_agent):
         user_input = get_user_input()
         print(f"User input: {user_input}")
 
+        # Check if the user wants to exit the interaction loop
+        if user_wants_to_exit(user_input):
+            break
+
         # Process the user input and perform the requested action using the AI agent
         ai_response = ai_agent.process_input(user_input)
 
         # Display the AI response to the user
-        display_response(ai_response)
-
-        # Check if the user wants to exit the interaction loop
-        if user_wants_to_exit(user_input):
-            break
+        # display_response(ai_response)
+        display_response_table(ai_response)
 
 
 if __name__ == "__main__":

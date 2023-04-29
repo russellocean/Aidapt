@@ -3,9 +3,16 @@ import os
 
 import openai
 from dotenv import load_dotenv
-from tools import api_request, calculate, edit_file, git_command, search, view_file
 
 import ai_agent.langchain_agent  # noqa: F401
+from ai_agent.tools import (
+    api_request,
+    calculate,
+    edit_file,
+    git_command,
+    search,
+    view_file,
+)
 from ui.prompts import build_prompt
 
 # Load the variables from the .env file
@@ -35,17 +42,19 @@ class AI_Agent:
 
         # Ask the AI agent to provide a response for the given prompt
         ai_response = self.ask_agent(prompt)
-        # Parse the AI response to obtain commands and parameters
-        commands_and_parameters = self.parse_ai_response(ai_response)
+        # Parse the AI response to obtain commands, parameters, thoughts, criticisms, and additional info
+        response_data = self.parse_ai_response(ai_response)
 
         # If there's a codebase database, execute the commands and update the database
         if self.codebase_database:
-            execution_results = self.execute_commands(commands_and_parameters)
+            execution_results = self.execute_commands(
+                response_data["commands_and_parameters"]
+            )
             self.codebase_database.update_faiss_index(execution_results)
-            return execution_results
+            return execution_results, response_data
         # If there's no codebase database, return the AI response directly
         else:
-            return ai_response
+            return response_data
 
     def ask_agent(self, prompt):
         response = openai.ChatCompletion.create(
@@ -61,12 +70,20 @@ class AI_Agent:
 
     def parse_ai_response(self, ai_response):
         try:
-            commands_and_parameters = json.loads(ai_response)
+            response_data = json.loads(ai_response)
         except json.JSONDecodeError:
             print("Error parsing AI response. Please check the response format.")
-            commands_and_parameters = {}
+            response_data = {}
 
-        return commands_and_parameters
+        # Return a dictionary containing commands_and_parameters, thoughts, criticisms, and additional_info
+        return {
+            "commands_and_parameters": response_data.get(
+                "`commands_and_parameters`", {}
+            ),
+            "thoughts": response_data.get("thoughts", ""),
+            "criticisms": response_data.get("criticisms", ""),
+            "additional_info": response_data.get("additional_info", ""),
+        }
 
     def execute_commands(self, commands_and_parameters):
         command_name = commands_and_parameters.get("command")

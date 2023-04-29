@@ -1,12 +1,15 @@
 import os
 
 import git
+from rich.console import Console
+from rich.table import Table
+
+console = Console()
 
 
 def display_prompt(prompt_text):
     # Display the prompt text to the user
-    print(prompt_text)
-    # Eventually use a UI frameworks
+    console.print(prompt_text, style="bold yellow")
 
 
 def receive_choice(choices):
@@ -21,15 +24,17 @@ def receive_choice(choices):
 def choose_project_source():
     # Prompt the user to choose between a folder, a repository, or none
     # Return the user's choice as a string ("folder", "repository", or "none")
+    display_prompt("Enter the project source (folder/repository/none):")
     while True:
-        project_source = input(
-            "Enter the project source (folder/repository/none): "
-        ).lower()
+        project_source = input().lower()
 
         if project_source in ["folder", "repository", "none"]:
             return project_source
         else:
-            print("Invalid project source. Please enter folder, repository, or none.")
+            console.print(
+                "Invalid project source. Please enter folder, repository, or none.",
+                style="bold red",
+            )
 
 
 def get_project_folder():
@@ -68,14 +73,47 @@ def clone_repo_to_local_folder(repo_url):
 def get_user_input():
     # Get the user input (e.g., text command or button press)
     # Return the user input as a string
-    user_input = input("Enter your objective: ")
+    display_prompt("Enter your objective:")
+    user_input = input()
     return user_input
 
 
 def display_response(ai_response):
     # Display the AI response to the user
-    # Takes the AI response as input
-    print(ai_response)
+    console.print("\n[bold green]Commands and Parameters:[/bold green]")
+    console.print(ai_response["commands_and_parameters"], style="green")
+
+    console.print("\n[bold blue]Thoughts:[/bold blue]")
+    console.print(ai_response["thoughts"], style="blue")
+
+    if ai_response["criticisms"] != "None":
+        console.print("\n[bold red]Criticisms:[/bold red]")
+        console.print(ai_response["criticisms"], style="red")
+
+    console.print("\n[bold magenta]Additional Info:[/bold magenta]")
+    console.print(ai_response["additional_info"], style="magenta")
+
+
+def display_response_table(ai_response):
+    table = Table(title="AI Response", show_header=False)
+
+    table.add_column("Category", justify="left", style="cyan", no_wrap=True)
+    table.add_column("Description", style="magenta")
+
+    table.add_row(
+        "[bold green]Commands and Parameters:[/bold green]",
+        str(ai_response["commands_and_parameters"]),
+    )
+    table.add_row("[bold blue]Thoughts:[/bold blue]", ai_response["thoughts"])
+
+    if ai_response["criticisms"] != "None":
+        table.add_row("[bold red]Criticisms:[/bold red]", ai_response["criticisms"])
+
+    table.add_row(
+        "[bold magenta]Additional Info:[/bold magenta]", ai_response["additional_info"]
+    )
+
+    console.print(table)
 
 
 def user_wants_to_exit(user_input):
