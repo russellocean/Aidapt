@@ -35,41 +35,69 @@ def main():
     interaction_loop(manager_agent, action_agent)
 
 
-def interaction_loop(
-    manager_agent,
-    action_agent,
-):
+def interaction_loop(manager_agent, action_agent):
     user_input = get_user_input()
     print(f"User input: {user_input}")
 
-    task_results = [None]
+    task_results = []
     while True:
         manager_prompt = build_manager_prompt(
             user_input, previous_responses=task_results
         )
+        # print(f"Manager prompt: {manager_prompt}")
         task_list = manager_agent.process_input(manager_prompt)
 
         # display_task_list(task_list)
+        print(f"Manager task list: {task_list}")
 
         # Check if the special value (None) is returned, and break the loop if it is
         if task_list is None:
-            print("No more tasks to perform")
             # display_final_results()
+            print("No more tasks to perform")
             break
 
         for task in task_list:
             action_prompt = build_action_prompt(task)
+            # print(f"Action prompt: {action_prompt}")
             task_result = action_agent.process_input(action_prompt)
-            # display_task_result(task_result)
             task_results.append(task_result)
+
+            formatted_task_result = display_task_results(task_list, task_results)
+            print(f"Task result: {formatted_task_result}")
 
             # Send the results back to the Manager Agent for evaluation
             manager_prompt = build_manager_prompt(
-                user_input, previous_responses=task_results
+                user_input, previous_responses=formatted_task_result
             )
-            task_list = manager_agent.process_input(manager_prompt)
 
-        print(f"Task results: {task_results}")
+            # print(f"Manager prompt (evaluation): {manager_prompt}")
+            task_list = manager_agent.process_input(manager_prompt)
+            print(f"Manager task list (evaluation): {task_list}")
+
+
+def display_task_results(task_list, task_results):
+    formatted_results = []
+
+    min_length = min(len(task_list), len(task_results))
+
+    for index in range(min_length):
+        task_result = task_results[index]
+        if task_result is None:
+            continue
+
+        task = task_list[index]
+        for result in task_result:
+            task_str = f"Task: {task['task']} ({task['additional_info']})"
+            task_thoughts = f"Thoughts: \"{result['thoughts']}\""
+            tool_str = f"Tool Used: {result['command']}"
+            result_str = f"Tool Result: {result['result']}"
+
+            formatted_result = (
+                f"{task_str}\n{task_thoughts}\n{tool_str}\n{result_str}".strip()
+            )
+            formatted_results.append(formatted_result)
+
+    return "\n\n".join(formatted_results)
 
 
 if __name__ == "__main__":

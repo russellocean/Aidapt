@@ -72,6 +72,12 @@ def build_manager_prompt(user_request, previous_responses=None):
         f"In order to achieve this, you will break down the users objective into smaller steps, research deeply, and thoroughly understand question and codebase.\n\n"
         f"Provided are the previous tasks and the Action Agent's results:\n{previous_responses}\n\n"
         f'The user\'s objective: "{user_request}", please provide a prioritized list of tasks for the Action Agent to perform. Remember that there will be a constant feedback loop between you and the Action Agent, so you can always add more tasks or change the priority of existing tasks based on the results received from the Action Agent.\n\n'
+        f"The Action Agent has the following tools available to them:\n\n"
+        f"1. Search - Use Google to find information.\n"
+        f"2. ViewFile - Use this to view files within a directory.\n"
+        f"3. EditFile - Use this to edit files in the codebase.\n"
+        f"4. Calculate - Perform calculations on mathematical expressions.\n"
+        f"5. Git - Utilize Git commands to interact with the codebase repository.\n"
         f"Return the tasks in the following JSON format:\n\n"
         f"[\n"
         f"  {{\n"

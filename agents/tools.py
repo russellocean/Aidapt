@@ -3,6 +3,7 @@ import re
 import subprocess
 
 import requests
+import wolframalpha
 from dotenv import load_dotenv
 
 # Load the variables from the .env file
