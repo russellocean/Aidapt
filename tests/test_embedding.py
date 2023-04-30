@@ -1,4 +1,4 @@
-from ai_agent.external_apis import get_embedding
+from agents.external_apis import get_embedding
 
 
 def main():

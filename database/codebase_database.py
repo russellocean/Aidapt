@@ -3,10 +3,20 @@ from glob import glob
 
 import faiss
 import numpy as np
+import openai
+from dotenv import load_dotenv
+from langchain.embeddings import OpenAIEmbeddings
 
-from ai_agent.external_apis import get_embedding
 from database.file_parser import get_functions
 from utils import print_search_results
+
+embeddings = OpenAIEmbeddings()
+
+# Load the variables from the .env file
+load_dotenv()
+
+# Access the variables using the os module
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 
 class CodebaseDatabase:
@@ -76,6 +86,13 @@ def convert_to_database(project_folder, project_source):
     else:
         codebase_database = None
     return codebase_database
+
+
+def get_embedding(text, engine="text-embedding-ada-002"):
+    openai.api_key = OPENAI_API_KEY
+
+    query_result = embeddings.embed_query(text)
+    return query_result
 
 
 def main():

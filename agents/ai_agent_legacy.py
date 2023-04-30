@@ -3,8 +3,6 @@ import os
 import re
 
 import openai
-from dotenv import load_dotenv
-
 from ai_agent.tools import (
     api_request,
     calculate,
@@ -13,6 +11,8 @@ from ai_agent.tools import (
     search,
     view_file,
 )
+from dotenv import load_dotenv
+
 from ui.prompts import build_prompt
 
 # Load the variables from the .env file
@@ -77,7 +77,7 @@ class AI_Agent:
         )
 
         ai_response = response.choices[0].message.content.strip()
-        # print(f"AI response: {ai_response}")
+
         return ai_response
 
     def parse_ai_response(self, ai_response):
