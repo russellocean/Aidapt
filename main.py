@@ -63,6 +63,12 @@ def interaction_loop(
             # display_task_result(task_result)
             task_results.append(task_result)
 
+            # Send the results back to the Manager Agent for evaluation
+            manager_prompt = build_manager_prompt(
+                user_input, previous_responses=task_results
+            )
+            task_list = manager_agent.process_input(manager_prompt)
+
         print(f"Task results: {task_results}")
 
 

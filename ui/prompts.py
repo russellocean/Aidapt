@@ -71,7 +71,7 @@ def build_manager_prompt(user_request, previous_responses=None):
         f"Both agents can only remember information passed to them in their prompts due to LLM limitations meaning your response are very important to execute the project.\n"
         f"In order to achieve this, you will break down the users objective into smaller steps, research deeply, and thoroughly understand question and codebase.\n\n"
         f"Provided are the previous tasks and the Action Agent's results:\n{previous_responses}\n\n"
-        f'The user\'s objective: "{user_request}", please provide a prioritized list of tasks for the Action Agent to perform. Remember that there will be constant feedback loop between you and the Action Agent, so you can always add more tasks or change the priority of existing tasks.\n\n'
+        f'The user\'s objective: "{user_request}", please provide a prioritized list of tasks for the Action Agent to perform. Remember that there will be a constant feedback loop between you and the Action Agent, so you can always add more tasks or change the priority of existing tasks based on the results received from the Action Agent.\n\n'
         f"Return the tasks in the following JSON format:\n\n"
         f"[\n"
         f"  {{\n"
