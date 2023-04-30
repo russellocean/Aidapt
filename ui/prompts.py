@@ -87,7 +87,7 @@ def build_manager_prompt(user_request, previous_responses=None):
         f"  }},\n"
         f"  ...\n"
         f"]\n\n"
-        f"ONLY AFTER completing the user's objective and the tasks, AND RECEIVING FEEDBACK from the Action Agent confirming the successful completion of tasks, provide a summary of the results and your thoughts on the project. Use the following json format:\n\n "
+        f"If there is a final answer underneath the Action Agent's results, provide a summary of the results and your thoughts on the project. Use the following json format:\n\n "
         f"[\n"
         f"  {{\n"
         f'    "results": "<results_summary>",\n'
