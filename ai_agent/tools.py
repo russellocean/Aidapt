@@ -25,10 +25,14 @@ def search(query):
 
     search_items = data.get("items", [])
     results = []
-    for search_item in search_items:
+    # print("\nSearch Results:\n" + "-" * 40)
+    for idx, search_item in enumerate(search_items):
         title = search_item.get("title")
         link = search_item.get("link")
-        results.append({"title": title, "link": link})
+        result = {"title": title, "link": link}
+        results.append(result)
+
+        # print(f"{idx + 1}. {title}\n   {link}\n" + "-" * 40)
 
     return results
 

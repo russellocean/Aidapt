@@ -26,19 +26,25 @@ class AI_Agent:
     def __init__(self, codebase_database=None):
         self.codebase_database = codebase_database
 
-    def create_prompt(self, user_request, context_vector=None):
-        prompt = build_prompt(user_request, context_vector)
+    def create_prompt(self, user_request, context_vector=None, previous_responses=None):
+        prompt = build_prompt(user_request, context_vector, previous_responses)
+
+        # print(f"Prompt: {prompt}")
         return prompt
 
-    def process_input(self, user_request):
+    def process_input(self, user_request, previous_responses=None):
         # If there's a codebase database, search for the context vector related to the user request
         if self.codebase_database:
             context_vector = self.codebase_database.search_faiss_index(user_request)
-            # Create a prompt for the AI agent using the user request and context vector
-            prompt = self.create_prompt(user_request, context_vector)
-        # If there's no codebase database, use the user request as the prompt
+            # Create a prompt for the AI agent using the user request, context vector, and previous responses
+            prompt = self.create_prompt(
+                user_request, context_vector, previous_responses
+            )
+        # If there's no codebase database, use the user request and previous responses as the prompt
         else:
-            prompt = self.create_prompt(user_request)
+            prompt = self.create_prompt(
+                user_request, previous_responses=previous_responses
+            )
 
         # Ask the AI agent to provide a response for the given prompt
         ai_response = self.ask_agent(prompt)
@@ -75,6 +81,9 @@ class AI_Agent:
         return ai_response
 
     def parse_ai_response(self, ai_response):
+        # Replace single quotes with double quotes within the JSON-like string
+        ai_response = re.sub(r"(\w)'(\w)", r'\1"\2', ai_response)
+
         # Find all JSON arrays in the AI response
         json_array = re.findall(r"(\[\s*\{.*?\}\s*\])", ai_response, flags=re.DOTALL)
 
