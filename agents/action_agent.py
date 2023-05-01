@@ -4,6 +4,7 @@ import re
 from .base_agent import Agent
 from .tools import (
     calculate,
+    create_file,
     edit_file,
     git_command,
     search,
@@ -25,7 +26,7 @@ class ActionAgent(Agent):
         # Example: {"result": "task execution result", "additional_info": "extra context"}
         agent_response = super().ask_agent(prompt)
 
-        print(f"Action Agent response: {agent_response}")
+        # print(f"Action Agent response: {agent_response}")
 
         # Parse agent_response to obtain commands, parameters, thoughts, criticisms, and additional info
         parsed_responses = self.parse_ai_response(agent_response)
@@ -119,6 +120,7 @@ class ActionAgent(Agent):
         "Search": search,
         "ViewFile": view_file,
         "EditFile": edit_file,
+        "CreateFile": create_file,
         "Calculate": calculate,
         "Git": git_command,
     }

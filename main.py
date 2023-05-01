@@ -5,9 +5,13 @@ from ui.prompts import build_action_prompt, build_manager_prompt
 from ui.user_interface import (
     choose_project_source,
     clone_repository,
-    display_response_table,  # noqa: F401
+    display_manager_task_list,
+    display_prompt,
+    display_task_result,
+    display_user_input,
     get_project_folder,
     get_user_input,
+    separator,
 )
 
 
@@ -36,46 +40,48 @@ def main():
 
 
 def interaction_loop(manager_agent, action_agent):
-    user_input = get_user_input()
-    print(f"User input: {user_input}")
-
-    task_results = []
     while True:
+        user_input = get_user_input()
+        display_user_input(user_input)
+
+        task_results = []
+
         manager_prompt = build_manager_prompt(
             user_input, previous_responses=task_results
         )
-        # print(f"Manager prompt: {manager_prompt}")
-        task_list = manager_agent.process_input(manager_prompt)
-
-        # display_task_list(task_list)
-        print(f"Manager task list: {task_list}")
-
-        # Check if the special value (None) is returned, and break the loop if it is
-        if task_list is None:
-            # display_final_results()
-            print("No more tasks to perform")
-            break
-
-        for task in task_list:
-            action_prompt = build_action_prompt(task)
-            # print(f"Action prompt: {action_prompt}")
-            task_result = action_agent.process_input(action_prompt)
-            task_results.append(task_result)
-
-            formatted_task_result = display_task_results(task_list, task_results)
-            print(f"Task result: {formatted_task_result}")
-
-            # Send the results back to the Manager Agent for evaluation
-            manager_prompt = build_manager_prompt(
-                user_input, previous_responses=formatted_task_result
-            )
-
-            # print(f"Manager prompt (evaluation): {manager_prompt}")
+        while True:
             task_list = manager_agent.process_input(manager_prompt)
-            print(f"Manager task list (evaluation): {task_list}")
+
+            display_manager_task_list(task_list)
+
+            # Check if the special value (None) is returned, and break the loop if it is
+            if task_list is None:
+                separator()
+                display_prompt("No more tasks to perform", style="bold red")
+                break
+
+            for task in task_list:
+                action_prompt = build_action_prompt(task)
+                task_result = action_agent.process_input(action_prompt)
+                task_results.append(task_result)
+
+                display_task_result(task, task_result)
+
+                agent_feedback = format_agent_conversation(task_list, task_results)
+
+                # Send the results back to the Manager Agent for evaluation
+                manager_prompt = build_manager_prompt(
+                    user_input, previous_responses=agent_feedback
+                )
+
+                task_list = manager_agent.process_input(manager_prompt)
+                display_manager_task_list(task_list)
 
 
-def display_task_results(task_list, task_results):
+def format_agent_conversation(task_list, task_results):
+    if task_list is None or task_results is None:
+        return None
+
     formatted_results = []
 
     min_length = min(len(task_list), len(task_results))

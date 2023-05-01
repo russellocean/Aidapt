@@ -17,7 +17,7 @@ class ManagerAgent(Agent):
     def create_and_prioritize_task_list(self, prompt):
         agent_response = super().ask_agent(prompt)
 
-        print(f"Manager Agent response: {agent_response}")
+        # print(f"Manager Agent response: {agent_response}")
 
         # Replace single quotes with double quotes within the JSON-like string
         # agent_response = re.sub(r"(\w)'(\w)", r'\1"\2', agent_response)
