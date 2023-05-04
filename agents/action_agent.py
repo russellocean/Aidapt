@@ -18,24 +18,24 @@ class ActionAgent(Agent):
 
     def process_input(self, prompt):
         # Method to execute the task and return the result
-        result = self.execute_task(prompt)
-        return result
-
-    def execute_task(self, prompt):
-        # Logic to execute tasks and return results
-        # Example: {"result": "task execution result", "additional_info": "extra context"}
         agent_response = super().ask_agent(prompt)
-
-        # print(f"Action Agent response: {agent_response}")
-
         # Parse agent_response to obtain commands, parameters, thoughts, criticisms, and additional info
         parsed_responses = self.parse_ai_response(agent_response)
+        result = self.execute_task(parsed_responses)
+        return result
+
+    def execute_task(self, parsed_responses):
+        # Logic to execute tasks and return results
+        # Example: {"result": "task execution result", "additional_info": "extra context"}
 
         # Execute the commands and store the results
         executed_commands = []
         for response in parsed_responses:
             commands_and_parameters = response["commands_and_parameters"]
             execution_result = self.execute_commands(commands_and_parameters)
+
+            # TODO If the execution result fails return as a failed task and stop executing the rest of the commands
+
             executed_commands.append(
                 {
                     "command": commands_and_parameters["command"],

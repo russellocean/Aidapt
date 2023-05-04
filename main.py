@@ -27,27 +27,30 @@ def main():
         project_folder = clone_repository()
 
     # Step 2: Convert project to AI-friendly database
-    codebase_database = convert_to_database(  # noqa: F841
-        project_folder, project_source
-    )  # noqa: F841
+    codebase_database = convert_to_database(project_folder, project_source)
 
     # Step 3: Create Manager Agent and Action Agent with necessary tools
     manager_agent = ManagerAgent(codebase_database)
     action_agent = ActionAgent()
 
     # Step 4: Begin interaction loop between user and AI agent
-    interaction_loop(manager_agent, action_agent)
+    interaction_loop(manager_agent, action_agent, codebase_database)
 
 
-def interaction_loop(manager_agent, action_agent):
+def interaction_loop(manager_agent, action_agent, codebase_database=None):
     while True:
         user_input = get_user_input()
         display_user_input(user_input)
 
         task_results = []
 
+        if codebase_database:
+            context_vector = codebase_database.search_faiss_index(user_input)
+
         manager_prompt = build_manager_prompt(
-            user_input, previous_responses=task_results
+            user_input,
+            previous_responses=task_results,
+            context_vector=context_vector,
         )
         while True:
             task_list = manager_agent.process_input(manager_prompt)
@@ -63,6 +66,7 @@ def interaction_loop(manager_agent, action_agent):
             for task in task_list:
                 action_prompt = build_action_prompt(task)
                 task_result = action_agent.process_input(action_prompt)
+
                 task_results.append(task_result)
 
                 display_task_result(task, task_result)

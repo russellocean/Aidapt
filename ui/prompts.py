@@ -1,6 +1,28 @@
 # f"Based on the context vector provided, the following relevant results have been found:\n\n"
 # f"{context_vector_summary}\n\n"
-def build_manager_prompt(user_request, previous_responses=None):
+def build_manager_prompt(user_request, previous_responses=None, context_vector=None):
+    if context_vector:
+        context_vector_details = []
+
+        for idx, result in enumerate(context_vector):
+            document = result["document"]
+            distance = result["distance"]
+            code = document["code"]
+            function_name = document["function_name"]
+            filepath = document["filepath"]
+
+            context_vector_details.append(
+                f"Result {idx + 1}:\n"
+                f"Function Name: {function_name}\n"
+                f"Filepath: {filepath}\n"
+                f"Code:\n{code}\n"
+                f"Relevance Score (lower is better): {distance}\n"
+            )
+
+        context_vector_summary = "\n".join(context_vector_details)
+    else:
+        context_vector_summary = "No context vector provided."
+
     if not previous_responses:
         previous_responses = (
             "No previous tasks or results. Most likely your first iteration."
@@ -37,7 +59,10 @@ def build_manager_prompt(user_request, previous_responses=None):
         f"  }},\n"
         f"  ...\n"
         f"]\n\n"
+        f"The user's objective reminds you of the following functions in the codebase: {context_vector_summary}\n\n"
     )
+
+    # print(f"Manager Prompt: {prompt}")
     return prompt
 
 

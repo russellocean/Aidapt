@@ -76,7 +76,18 @@ def display_user_input(user_input):
 
 def display_manager_task_list(task_list):
     console.print("\n[bold green]Manager Task List:[/bold green]")
-    console.print(task_list, style="green")
+
+    table = Table(
+        show_header=True, header_style="bold green", box=rich.box.ROUNDED, pad_edge=True
+    )
+    table.add_column("Priority", justify="center", style="bold", no_wrap=True)
+    table.add_column("Task", style="bold", no_wrap=True)
+    table.add_column("Additional Info", style="none")
+
+    for task in task_list:
+        table.add_row(str(task["priority"]), task["task"], task["additional_info"])
+
+    console.print(table)
 
 
 def display_task_results(task_list, task_results):
