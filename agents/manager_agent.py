@@ -1,6 +1,7 @@
+from agents.action_agent import ActionAgent
 from ui.prompts import build_manager_prompt
 
-from .agent import ActionAgent, Agent
+from .agent import Agent
 
 
 class AgentManager(Agent):
@@ -17,6 +18,7 @@ class AgentManager(Agent):
         else:
             self.users_objective = users_objective
         self.prompt = self.build_prompt()
+
         self.objective_met = False
         self.final_answer = None
 

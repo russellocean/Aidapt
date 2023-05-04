@@ -4,6 +4,41 @@ def build_manager_prompt(users_objective, tool_list=None, task_list=None):
     if task_list is None:
         task_list = "No tasks yet."
 
+    prompt = read_prompt(
+        "prompts.txt",
+        "manager_prompt",
+        users_objective=users_objective,
+        tool_list=tool_list,
+        task_list=task_list,
+    )
+
+    return prompt
+
+
+def build_action_prompt(task, message, memory_items=None, tool_list=None):
+    if memory_items is None:
+        memory_items = []
+    if tool_list is None:
+        tool_list = []
+
+    prompt = read_prompt(
+        "prompts.txt",
+        "action_prompt",
+        task=task,
+        message=message,
+        memory_items=memory_items,
+        tool_list=tool_list,
+    )
+
+    return prompt
+
+
+def build_manager_prompt(users_objective, tool_list=None, task_list=None):
+    if tool_list is None:
+        tool_list = "No tools available."
+    if task_list is None:
+        task_list = "No tasks yet."
+
     prompt = (
         f"You are the Manager Agent, an AI assistant designed to help developers with codebase-related tasks. "
         f"Your goal is to complete the user's objective: '{users_objective}'. "
@@ -98,3 +133,13 @@ def build_action_prompt(task, message, memory_items=None, tool_list=None):
     )
 
     return prompt
+
+
+def read_prompt(file_path, prompt_name, **variables):
+    with open(file_path, "r") as file:
+        content = file.read()
+        prompt_start = content.index(f"[{prompt_name}]") + len(prompt_name) + 2
+        prompt_end = content.index("\n\n", prompt_start)
+        prompt_template = content[prompt_start:prompt_end]
+        prompt = prompt_template.format(**variables)
+        return prompt
