@@ -13,8 +13,11 @@ openai.api_key = OPENAI_API_KEY
 
 
 class Agent:
+    _callback = None
+
     def __init__(self):
         self.tools = self.get_available_tools()
+        self.callback = self.get_callback()
 
     def __str__(self):
         tools_str = []
@@ -25,6 +28,22 @@ class Agent:
                 f"{tool_name}: {function_description}\nParameters: {parameters}\n"
             )
         return "\n".join(tools_str)
+
+    @classmethod
+    def set_callback(cls, callback):
+        cls._callback = callback
+
+    @classmethod
+    def get_callback(cls):
+        if cls._callback is None:
+            return cls.default_callback
+        return cls._callback
+
+    @classmethod
+    def default_callback(cls, output_type, intermediate_response=None):
+        print(f"Output type: {output_type}")
+        if intermediate_response is not None:
+            print(f"Intermediate response: {intermediate_response}")
 
     def display_tools(self):
         tools_str = []
@@ -51,7 +70,7 @@ class Agent:
 
     def ask_agent(self, prompt):
         response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+            model="gpt-4",
             temperature=0.2,
             max_tokens=2000,
             messages=[{"role": "user", "content": prompt}],
@@ -69,7 +88,9 @@ class Agent:
         try:
             parsed_response = json.loads(ai_response)
         except json.JSONDecodeError as e:
-            print(f"Error parsing AI response: {e}")
+            self.callback(
+                "error", f"Error parsing AI response: {e}\n Response: {ai_response}"
+            )
             return f"Error parsing AI response, please check the response format. Response provided: {e}"
             # raise ValueError("AI response is not in the expected JSON format.")
         return parsed_response
@@ -93,9 +114,13 @@ class Agent:
                 tool = self.tools[tool_name]
                 function = tool["function"]
                 result = function(*parameters)
-                print(f"Tool '{tool_name}' executed with result: {result}")
+                self.callback(
+                    "tool", f"Tool '{tool_name}' executed with result: {result}"
+                )
             else:
-                print(f"Tool '{tool_name}' not available for this agent.")
+                self.callback(
+                    "tool", f"Tool '{tool_name}' not available for this agent."
+                )
 
     def perform_task(self, task, message, memory):
         # This is the main method to be called by the AgentManager.

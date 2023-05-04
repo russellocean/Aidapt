@@ -11,6 +11,7 @@ class AgentManager(Agent):
         self.final_answer = None
         self.users_objective = users_objective
         self.tasks = []
+        self.callback = self.get_callback()
 
     def run(self, users_objective=None, confirmation=False):
         if users_objective is None:
@@ -24,17 +25,21 @@ class AgentManager(Agent):
 
         # Keep processing input and building prompts until the objective is met or the user stops the process
         while not self.objective_met:
-            # print("Current prompt:\n", self.prompt)  # Print the current prompt
             response = self.process_input(self.prompt)
 
-            print(format_response(response))
+            self.callback("response", response)
 
             # If confirmation is required, ask the user if they want to continue
             if confirmation:
-                user_input = input("Do you want to continue? (yes/no): ").lower()
+                user_input = self.callback("continuation")
                 if user_input != "yes":
-                    print("User stopped the process.")
+                    self.callback("info", "Process stopped by user.")
                     break
+            else:
+                self.callback(
+                    "warning",
+                    "Confirmation mode is not enabled. Continuous mode is on.",
+                )
 
             self.process_response(response)
 
@@ -47,12 +52,10 @@ class AgentManager(Agent):
 
         # Once the loop ends, return the final answer (if the objective has been met)
         if self.objective_met:
-            print(
-                "Objective met. Final answer:", self.final_answer
-            )  # Print the final answer
+            self.callback("final_answer", self.final_answer)
             return self.final_answer
         else:
-            print("Objective not met.")
+            self.callback("final_answer", "No answer found.")
             return None
 
     def get_available_tools(self):
@@ -84,13 +87,6 @@ class AgentManager(Agent):
 
         # If tools_to_run is not empty (i.e., there are tools to run), execute them.
         self.execute_tools(tools_to_run)
-
-        # Execute any tools specified in the response.
-        # for tool in tools_to_run:
-        #     tool_name = tool["tool"]
-        #     function_name = tool["function"]
-        #     parameters = tool["parameters"]
-        #     self.execute_tools(tool_name, function_name, parameters)
 
         # Update the memory and task list based on the agent_calls.
         for agent_call in agent_calls:
@@ -127,6 +123,8 @@ class AgentManager(Agent):
 
         # Set self.tasks to the updated_tasks list
         self.tasks = updated_tasks
+        # print(f"Updated tasks: {self.tasks}")
+        self.callback("tasks", self.tasks)
 
     def delegate_task(self, agent_name, task, message):
         # Interact with the AgentManager to delegate tasks to other agents.
@@ -137,10 +135,10 @@ class AgentManager(Agent):
         normalized_agent_name = normalize_agent_name(agent_name)
 
         if normalized_agent_name == "actionagent":
-            print(f"Delegating task {task} to ActionAgent.")
+            self.callback("delegating", f"delegating task {task} to {agent_name}.")
             result = ActionAgent().perform_task(task, message)
         else:
-            print(f"Agent {agent_name} is not supported.")
+            self.callback("delegating", f"Agent {agent_name} is not supported.")
             result = f"Agent {agent_name} is not supported."
 
         # Add other agents here as needed.

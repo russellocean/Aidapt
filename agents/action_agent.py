@@ -19,6 +19,7 @@ class ActionAgent(Agent):
                 "parameters": ["filepath", "content"],
             },
         }
+        self.callback = self.get_callback()
 
     def build_prompt(self, task, message, memory_items):
         prompt = build_action_prompt(
@@ -36,12 +37,10 @@ class ActionAgent(Agent):
         # Build the prompt for the Action Agent.
         prompt = self.build_prompt(task, message, memory)
 
-        print(f"Prompt: {prompt}")
-
         # Ask the AI agent using the built prompt.
         response = self.process_input(prompt)
 
-        print(f"Response: {response}")
+        self.callback("response", response)
 
         # Parse the AI response, and execute any tools specified.
         if "tools_to_run" in response:
