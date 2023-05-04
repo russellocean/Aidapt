@@ -16,6 +16,26 @@ class Agent:
     def __init__(self):
         self.tools = self.get_available_tools()
 
+    def __str__(self):
+        tools_str = []
+        for tool_name, tool_info in self.tools.items():
+            function_description = tool_info["description"]
+            parameters = ", ".join(tool_info["parameters"])
+            tools_str.append(
+                f"{tool_name}: {function_description}\nParameters: {parameters}\n"
+            )
+        return "\n".join(tools_str)
+
+    def display_tools(self):
+        tools_str = []
+        for tool_name, tool_info in self.tools.items():
+            function_description = tool_info["description"]
+            parameters = ", ".join(tool_info["parameters"])
+            tools_str.append(
+                f"{tool_name}: {function_description}\nParameters: {parameters}\n"
+            )
+        return "\n".join(tools_str)
+
     def get_available_tools(self):
         # Define the tools available to each agent.
         # Each agent can override this method to provide its own tools.
@@ -67,24 +87,15 @@ class Agent:
     def execute_tools(self, tools_to_run):
         for tool_info in tools_to_run:
             tool_name = tool_info["tool"]
-            function_name = tool_info["function"]
             parameters = tool_info["parameters"]
 
             if tool_name in self.tools:
                 tool = self.tools[tool_name]
-                function = getattr(tool, function_name, None)
-                if function:
-                    function(*parameters)
-                else:
-                    print(
-                        f"Function '{function_name}' not found in tool '{tool_name}'."
-                    )
-                    # raise ValueError(
-                    #     f"Function '{function_name}' not found in tool '{tool_name}'."
-                    # )
+                function = tool["function"]
+                result = function(*parameters)
+                print(f"Tool '{tool_name}' executed with result: {result}")
             else:
                 print(f"Tool '{tool_name}' not available for this agent.")
-                # raise ValueError(f"Tool '{tool_name}' not available for this agent.")
 
     def perform_task(self, task, message, memory):
         # This is the main method to be called by the AgentManager.

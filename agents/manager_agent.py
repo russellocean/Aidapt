@@ -1,6 +1,6 @@
 from ui.prompts import build_manager_prompt
 
-from .agent import Agent
+from .agent import ActionAgent, Agent
 
 
 class AgentManager(Agent):
@@ -67,14 +67,6 @@ class AgentManager(Agent):
 
         return prompt
 
-    def breakdown_objective(self, objective, memory):
-        # Use the Manager Agent to break down the objective into tasks, prioritize them, and assign them to appropriate agents.
-        tasks = [
-            # Example tasks can be added here, e.g.
-            # {"agent": "refactoring", "task": "refactor_code", "message": "Refactor main.py", "completed": False}
-        ]
-        return tasks
-
     def process_response(self, response):
         # Update the Manager Agent's state based on the response from other agents.
 
@@ -133,32 +125,15 @@ class AgentManager(Agent):
         # Set self.tasks to the updated_tasks list
         self.tasks = updated_tasks
 
-    def perform_task(self, task, message, memory):
-        # Override the base class method to provide manager-specific functionality.
-        tasks = self.breakdown_objective(message, memory)
-
-        while not self.objective_met:
-            for task in tasks:
-                if not task["completed"]:
-                    agent_name = task["agent"]
-                    task_name = task["task"]
-                    task_message = task["message"]
-
-                    response = self.delegate_task(
-                        agent_name, task_name, task_message, memory
-                    )
-                    self.process_response(response)
-
-                if self.objective_met:
-                    break
-
-        return self.final_answer
-
     def delegate_task(self, agent_name, task, message):
         # Interact with the AgentManager to delegate tasks to other agents.
         # This method should be called by the AgentManager, which should provide the necessary agent_name, task, message, and memory.
         # The AgentManager can implement a similar method to the one shown in the high-level Python code outline provided earlier.
-        pass
+        if agent_name == "ActionAgent":
+            result = ActionAgent().perform_task(task, message)
+
+        # Add other agents here as needed.
+        return result
 
 
 def main():
