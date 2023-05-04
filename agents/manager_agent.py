@@ -11,7 +11,7 @@ class AgentManager(Agent):
         self.users_objective = users_objective
         self.tasks = []
 
-    def run(self, users_objective=None):
+    def run(self, users_objective=None, confirmation=False):
         if users_objective is None:
             users_objective = self.users_objective
         else:
@@ -20,22 +20,37 @@ class AgentManager(Agent):
         self.objective_met = False
         self.final_answer = None
 
-        # Keep processing input and building prompts until the objective is met
+        # Keep processing input and building prompts until the objective is met or the user stops the process
         while not self.objective_met:
-            print("Current prompt:", self.prompt)  # Print the current prompt
+            print("Current prompt:\n", self.prompt)  # Print the current prompt
             response = self.process_input(self.prompt)
-            print("AI response:", response)  # Print the AI response
+            print(f"AI response:\n{response}")
 
             self.process_response(response)
+
+            # Check if the objective has been met
+            if self.objective_met:
+                break
+
+            # If confirmation is required, ask the user if they want to continue
+            if confirmation:
+                user_input = input("Do you want to continue? (yes/no): ").lower()
+                if user_input != "yes":
+                    print("User stopped the process.")
+                    break
 
             # Build the next prompt
             self.prompt = self.build_prompt()
 
-        # Once the objective is met, return the final answer
-        print(
-            "Objective met. Final answer:", self.final_answer
-        )  # Print the final answer
-        return self.final_answer
+        # Once the loop ends, return the final answer (if the objective has been met)
+        if self.objective_met:
+            print(
+                "Objective met. Final answer:", self.final_answer
+            )  # Print the final answer
+            return self.final_answer
+        else:
+            print("Objective not met.")
+            return None
 
     def get_available_tools(self):
         # Define the tools available to the Manager Agent.
@@ -70,7 +85,7 @@ class AgentManager(Agent):
         agent_calls = response.get("agent_calls", [])
         objective_met = response.get("objective_met", False)
         final_answer = response.get("final_answer", "")
-        current_task_list = response.get("current_task_list", [])
+        current_task_list = response.get("current_task_list", self.tasks)
 
         # If tools_to_run is not empty (i.e., there are tools to run), execute them.
         self.execute_tools(tools_to_run)
@@ -96,12 +111,27 @@ class AgentManager(Agent):
             self.objective_met = True
             self.final_answer = final_answer
 
-        # Update the task list based on the response's current_task_list.
-        # This can be done by comparing the received task list with the manager's task list and updating it accordingly.
-        # For example, marking tasks as completed or adding new tasks.
+        updated_tasks = []
+
+        # Iterate through the tasks in the response's current_task_list
         for task in current_task_list:
-            # Update the task list as needed.
-            pass
+            task_id = task["task_id"]
+
+            # Search for the task_id in the manager's task list
+            existing_task = next(
+                (t for t in self.tasks if t["task_id"] == task_id), None
+            )
+
+            if existing_task is None:
+                # If the task_id is not in the manager's task list, add the task
+                updated_tasks.append(task)
+            else:
+                # Update the task's completion status and add it to the updated_tasks list
+                existing_task["completed"] = task["completed"]
+                updated_tasks.append(existing_task)
+
+        # Set self.tasks to the updated_tasks list
+        self.tasks = updated_tasks
 
     def perform_task(self, task, message, memory):
         # Override the base class method to provide manager-specific functionality.
@@ -132,7 +162,9 @@ class AgentManager(Agent):
 
 
 def main():
-    AgentManager().run("Write a program that prints 'Hello World!' in Python.")
+    AgentManager().run(
+        "Write a program that prints 'Hello World!' in Python.", confirmation=True
+    )
 
 
 if __name__ == "__main__":

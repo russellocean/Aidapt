@@ -39,8 +39,6 @@ class Agent:
 
         ai_response = response.choices[0].message.content.strip()
 
-        print(f"AI response: {ai_response}")
-
         return ai_response
 
     def parse_response(self, ai_response):
