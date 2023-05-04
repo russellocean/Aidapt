@@ -24,15 +24,10 @@ class AgentManager(Agent):
 
         # Keep processing input and building prompts until the objective is met or the user stops the process
         while not self.objective_met:
-            print("Current prompt:\n", self.prompt)  # Print the current prompt
+            # print("Current prompt:\n", self.prompt)  # Print the current prompt
             response = self.process_input(self.prompt)
-            print(f"AI response:\n{response}")
 
-            self.process_response(response)
-
-            # Check if the objective has been met
-            if self.objective_met:
-                break
+            print(format_response(response))
 
             # If confirmation is required, ask the user if they want to continue
             if confirmation:
@@ -40,6 +35,12 @@ class AgentManager(Agent):
                 if user_input != "yes":
                     print("User stopped the process.")
                     break
+
+            self.process_response(response)
+
+            # Check if the objective has been met
+            if self.objective_met:
+                break
 
             # Build the next prompt
             self.prompt = self.build_prompt()
@@ -131,16 +132,75 @@ class AgentManager(Agent):
         # Interact with the AgentManager to delegate tasks to other agents.
         # This method should be called by the AgentManager, which should provide the necessary agent_name, task, message, and memory.
         # The AgentManager can implement a similar method to the one shown in the high-level Python code outline provided earlier.
-        if agent_name == "ActionAgent":
+        result = None
+
+        normalized_agent_name = normalize_agent_name(agent_name)
+
+        if normalized_agent_name == "actionagent":
+            print(f"Delegating task {task} to ActionAgent.")
             result = ActionAgent().perform_task(task, message)
+        else:
+            print(f"Agent {agent_name} is not supported.")
+            result = f"Agent {agent_name} is not supported."
 
         # Add other agents here as needed.
         return result
 
 
+def normalize_agent_name(agent_name):
+    return agent_name.strip().replace(" ", "").replace("_", "").lower()
+
+
+def format_response(response):
+    formatted_response = ""
+
+    formatted_response += "Thoughts:\n"
+    formatted_response += response["thoughts"] + "\n\n"
+
+    if response["criticisms"]:
+        formatted_response += "Criticisms:\n"
+        formatted_response += response["criticisms"] + "\n\n"
+
+    if response["tools_to_run"]:
+        formatted_response += "Tools to run:\n"
+        for tool in response["tools_to_run"]:
+            formatted_response += f"  - Tool: {tool['tool']}\n"
+            formatted_response += f"    Parameters: {', '.join(tool['parameters'])}\n"
+        formatted_response += "\n"
+
+    if response["agent_calls"]:
+        formatted_response += "Agent Calls:\n"
+        for agent_call in response["agent_calls"]:
+            formatted_response += f"  - Agent: {agent_call['agent']}\n"
+            formatted_response += f"    Task: {agent_call['task']}\n"
+            formatted_response += f"    Message: {agent_call['message']}\n"
+        formatted_response += "\n"
+
+    formatted_response += (
+        f"Objective Met: {'Yes' if response['objective_met'] else 'No'}\n"
+    )
+
+    if response["final_answer"]:
+        formatted_response += "Final Answer:\n"
+        formatted_response += response["final_answer"] + "\n\n"
+
+    if response["current_task_list"]:
+        formatted_response += "Current Task List:\n"
+        for task in response["current_task_list"]:
+            formatted_response += f"  - Task ID: {task['task_id']}\n"
+            formatted_response += f"    Task: {task['task']}\n"
+            formatted_response += (
+                f"    Completed: {'Yes' if task['completed'] else 'No'}\n"
+            )
+        formatted_response += "\n"
+
+    return formatted_response
+
+
 def main():
     AgentManager().run(
-        "Write a program that prints 'Hello World!' in Python.", confirmation=True
+        "Write a program that prints 'Hello World!' in Python at this directory: /Users/russellocean/Dev/test. Delegalte the task to the ActionAgent.",
+        confirmation=True,
     )
 
 
