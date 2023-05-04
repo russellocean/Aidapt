@@ -41,14 +41,14 @@ class AgentManager(Agent):
                     "Confirmation mode is not enabled. Continuous mode is on.",
                 )
 
-            self.process_response(response)
+            execution_responses = self.process_response(response)
 
             # Check if the objective has been met
             if self.objective_met:
                 break
 
             # Build the next prompt
-            self.prompt = self.build_prompt()
+            self.prompt = self.build_prompt(execution_responses)
 
         # Once the loop ends, return the final answer (if the objective has been met)
         if self.objective_met:
@@ -64,11 +64,12 @@ class AgentManager(Agent):
             # Add tool instances here, e.g., 'tool_name': ToolClass()
         }
 
-    def build_prompt(self):
+    def build_prompt(self, execution_responses=None):
         prompt = build_manager_prompt(
             users_objective=self.users_objective,
             tool_list=self.tools,
             task_list=self.tasks,
+            execution_responses=execution_responses,
         )
 
         return prompt
@@ -88,13 +89,17 @@ class AgentManager(Agent):
         # If tools_to_run is not empty (i.e., there are tools to run), execute them.
         self.execute_tools(tools_to_run)
 
+        # list of worker results
+        worker_results = []
+
         # Update the memory and task list based on the agent_calls.
         for agent_call in agent_calls:
             agent_name = agent_call["agent"]
             task_name = agent_call["task"]
             message = agent_call["message"]
 
-            self.delegate_task(agent_name, task_name, message)
+            worker_result = self.delegate_task(agent_name, task_name, message)
+            worker_results.append(worker_result)
             # Update memory and task list as needed, e.g., by adding new tasks or marking tasks as completed.
 
         # Check if the objective has been met.
@@ -125,6 +130,8 @@ class AgentManager(Agent):
         self.tasks = updated_tasks
         # print(f"Updated tasks: {self.tasks}")
         self.callback("tasks", self.tasks)
+
+        return worker_results
 
     def delegate_task(self, agent_name, task, message):
         # Interact with the AgentManager to delegate tasks to other agents.
