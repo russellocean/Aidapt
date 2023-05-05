@@ -4,7 +4,6 @@ import git
 import rich
 from rich.console import Console
 from rich.table import Table
-from rich.text import Text
 
 console = Console()
 
@@ -36,6 +35,47 @@ def choose_project_source():
                 "Invalid project source. Please enter folder, repository, or none.",
                 style="bold red",
             )
+
+
+def display_intermediate_response(output_type, feedback=None):
+    if output_type == "response":
+        # Display AI response
+        display_agent_response(feedback)
+    elif output_type == "tasks":
+        # Display current tasks
+        display_tasks(feedback)
+    elif output_type == "prompt":
+        # Display current prompt
+        display_agent_prompt(feedback)
+    elif output_type == "continuation":
+        # Ask the user if they want to continue
+        display_prompt(
+            prompt_text="Do you want to continue? (yes/no):", style="bold green"
+        )
+        return receive_choice(choices=["yes", "no"])
+    elif output_type == "info":
+        # Display an informational message
+        feedback = f"Info: {feedback}"
+        display_prompt(prompt_text=feedback, style="bold blue")
+    elif output_type == "warning":
+        # Display a warning message
+        feedback = f"Warning: {feedback}"
+        display_prompt(prompt_text=feedback, style="bold yellow")
+    elif output_type == "error":
+        # Display an error message
+        feedback = f"Error: {feedback}"
+        display_prompt(prompt_text=feedback, style="bold red")
+    elif output_type == "final_answer":
+        # Display the final answer
+        display_final_answer(feedback)
+    elif output_type == "delegating":
+        # Display a delegating message
+        display_delegation_message(feedback)
+    elif output_type == "tool":
+        # Display a tool message
+        display_tool_message(feedback)
+    else:
+        display_prompt(prompt_text="Invalid output type given.", style="bold red")
 
 
 def get_project_folder():
@@ -90,42 +130,117 @@ def display_manager_task_list(task_list):
     console.print(table)
 
 
-def display_task_results(task_list, task_results):
-    formatted_results = []
+def display_agent_response(feedback):
+    console.print("\n[bold blue]Thoughts:[/bold blue]")
+    console.print(feedback["thoughts"], style="blue")
 
-    min_length = min(len(task_list), len(task_results))
+    if feedback["criticisms"]:
+        console.print("\n[bold red]Criticisms:[/bold red]")
+        console.print(feedback["criticisms"], style="red")
 
-    for index in range(min_length):
-        task_result = task_results[index]
-        if task_result is None:
-            continue
+    if "tools_to_run" in feedback:
+        display_tools_to_run(feedback["tools_to_run"])
 
-        task = task_list[index]
-        display_task_result(task, task_result)
+    if "agent_calls" in feedback:
+        display_agent_calls(feedback["agent_calls"])
 
-    console.print("\n".join(formatted_results), style="magenta")
+    if "current_task_list" in feedback:
+        display_current_task_list(feedback["current_task_list"])
 
 
-def display_task_result(task, task_results):
-    for task_result in task_results:
-        table = Table(show_header=False, box=rich.box.ROUNDED, pad_edge=True)
-        table.add_column("Category", justify="left", style="bold", no_wrap=True)
-        table.add_column("Description", style="none")
-
-        task_str = f"Task: {task['task']} ({task['additional_info']})"
-        thoughts_str = task_result["thoughts"]
-        tool_str = f"Tool Used: {task_result['command']}"
-        result_str = f"Tool Result: {task_result['result']}"
-
-        table.add_row(
-            Text("Task:", style="bold magenta"), Text(task_str, style="magenta")
+def display_tools_to_run(tools):
+    if tools:
+        console.print("\n[bold green]Tools to run:[/bold green]")
+        table = Table(
+            show_header=True,
+            header_style="bold green",
+            box=rich.box.ROUNDED,
+            pad_edge=True,
         )
-        table.add_row(
-            Text("Thoughts:", style="bold blue"), Text(thoughts_str, style="blue")
-        )
-        table.add_row(Text("Tool:", style="bold cyan"), Text(tool_str, style="cyan"))
-        table.add_row(
-            Text("Result:", style="bold green"), Text(result_str, style="green")
-        )
+        table.add_column("Tool", style="bold")
+        table.add_column("Parameters")
+
+        for tool in tools:
+            parameters = ", ".join(str(param) for param in tool["parameters"])
+            table.add_row(tool["tool"], parameters)
 
         console.print(table)
+
+
+def display_agent_calls(agent_calls):
+    if agent_calls:
+        console.print("\n[bold green]Agent Calls:[/bold green]")
+        table = Table(
+            show_header=True,
+            header_style="bold green",
+            box=rich.box.ROUNDED,
+            pad_edge=True,
+        )
+        table.add_column("Agent", style="bold")
+        table.add_column("Task")
+        table.add_column("Message")
+
+        for agent_call in agent_calls:
+            table.add_row(
+                str(agent_call["agent"]),
+                str(agent_call["task"]),
+                str(agent_call["message"]),
+            )
+
+        console.print(table)
+
+
+def display_current_task_list(task_list):
+    if task_list:
+        console.print("\n[bold green]Current Task List:[/bold green]")
+        table = Table(
+            show_header=True,
+            header_style="bold green",
+            box=rich.box.ROUNDED,
+            pad_edge=True,
+        )
+        table.add_column("Task ID", justify="center", style="bold", no_wrap=True)
+        table.add_column("Task", style="bold", no_wrap=True)
+        table.add_column("Completed", justify="center", style="bold", no_wrap=True)
+
+        for task in task_list:
+            completed = "Yes" if task["completed"] else "No"
+            table.add_row(str(task["task_id"]), task["task"], completed)
+
+        console.print(table)
+
+
+def display_tasks(feedback):
+    display_current_task_list(feedback)
+
+
+def display_agent_prompt(feedback):
+    console.print("\n[bold green]Agent Prompt:[/bold green]")
+    table = Table(box=rich.box.ROUNDED, pad_edge=True)
+    table.add_column("Prompt", style="bold cyan")
+    table.add_row(feedback)
+    console.print(table)
+
+
+def display_final_answer(feedback):
+    console.print("\n[bold green]Final Answer:[/bold green]")
+    table = Table(box=rich.box.ROUNDED, pad_edge=True)
+    table.add_column("Answer", style="bold magenta")
+    table.add_row(feedback)
+    console.print(table)
+
+
+def display_delegation_message(feedback):
+    console.print("\n[bold green]Delegation Message:[/bold green]")
+    table = Table(box=rich.box.ROUNDED, pad_edge=True)
+    table.add_column("Message", style="bold yellow")
+    table.add_row(feedback)
+    console.print(table)
+
+
+def display_tool_message(feedback):
+    console.print("\n[bold green]Tool Message:[/bold green]")
+    table = Table(box=rich.box.ROUNDED, pad_edge=True)
+    table.add_column("Message", style="bold blue")
+    table.add_row(feedback)
+    console.print(table)

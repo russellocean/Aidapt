@@ -1,126 +1,96 @@
-import json
-import re
+from ui.prompts import build_action_prompt
 
-from .base_agent import Agent
-from .tools import (
-    calculate,
-    create_file,
-    edit_file,
-    git_command,
-    search,
-    view_file,
-)
+from .agent import Agent
+from .tools import create_file, edit_file, search
 
 
 class ActionAgent(Agent):
     def __init__(self):
         super().__init__()
+        self.tools = {
+            "search": {
+                "function": search,
+                "description": "Use Google search to find information related to the query and return search results or relevant information.",
+                "parameters": ["query"],
+            },
+            "create_file": {
+                "function": create_file,
+                "description": "Create a new file at the given filepath with the specified content.",
+                "parameters": ["filepath", "content"],
+            },
+            "edit_file": {
+                "function": edit_file,
+                "description": "Apply the specified edits to the file at the given filepath, save the file, and return the edited file content or a summary of changes.",
+                "parameters": ["filepath", "new_contents"],
+            },
+        }
+        self.callback = self.get_callback()
 
-    def process_input(self, prompt):
-        # Method to execute the task and return the result
-        agent_response = super().ask_agent(prompt)
-        # Parse agent_response to obtain commands, parameters, thoughts, criticisms, and additional info
-        parsed_responses = self.parse_ai_response(agent_response)
-        result = self.execute_task(parsed_responses)
-        return result
+    def build_prompt(self, task, message, memory_items, task_list=None):
+        prompt = build_action_prompt(
+            task=task,
+            message=message,
+            memory_items=memory_items,
+            tool_list=self.display_tools(),
+            task_list=task_list,
+        )
 
-    def execute_task(self, parsed_responses):
-        # Logic to execute tasks and return results
-        # Example: {"result": "task execution result", "additional_info": "extra context"}
+        return prompt
 
-        # Execute the commands and store the results
-        executed_commands = []
-        for response in parsed_responses:
-            commands_and_parameters = response["commands_and_parameters"]
-            execution_result = self.execute_commands(commands_and_parameters)
+    def perform_task(self, task, message, memory=None, task_list=None):
+        # Override the base class method to provide action-specific functionality.
 
-            # TODO If the execution result fails return as a failed task and stop executing the rest of the commands
+        # Build the prompt for the Action Agent.
+        prompt = self.build_prompt(task, message, memory, task_list)
 
-            executed_commands.append(
-                {
-                    "command": commands_and_parameters["command"],
-                    "parameters": commands_and_parameters["parameters"],
-                    "result": execution_result,
-                    "thoughts": response["thoughts"],
-                    "criticisms": response["criticisms"],
-                    "additional_info": response["additional_info"],
-                }
-            )
+        # Ask the AI agent using the built prompt.
+        response = self.process_input(prompt)
 
-        return executed_commands
+        self.callback("response", response)
 
-    def parse_ai_response(self, ai_response):
-        # Replace single quotes with double quotes within the JSON-like string
-        # ai_response = re.sub(r"(\w)'(\w)", r'\1"\2', ai_response)
+        # Parse the AI response, and execute any tools specified.
+        if "tools_to_run" in response:
+            self.execute_tools(response["tools_to_run"])
 
-        # Find all JSON arrays in the AI response
-        json_array = re.findall(r"(\[\s*\{.*?\}\s*\])", ai_response, flags=re.DOTALL)
+        # Update memory based on the AI response.
+        if "mem_updates" in response:
+            # self.update_memory(response["mem_updates"], memory)
+            print(f"Updated memory: {memory}")
 
-        # print(f"JSON array: {json_array}")
+        return response["result"]
 
-        # If a JSON array is found, parse it
-        if json_array:
-            try:
-                response_data_list = json.loads(json_array[0])
-            except json.JSONDecodeError:
-                print("Error parsing AI response. Please check the response format.")
-                print(f"AI response: {ai_response}")
-                response_data_list = []
-        else:
-            print("Error parsing AI response. Please check the response format.")
-            print(f"AI response: {ai_response}")
-            response_data_list = []
+    def update_memory(self, mem_updates, memory):
+        for mem_update in mem_updates:
+            action = mem_update["action"]
+            memory_item = mem_update["memory_item"]
 
-        # Ensure the response data is a list
-        if not isinstance(response_data_list, list):
-            response_data_list = [response_data_list]
-
-        # Parse each response in the list
-        parsed_responses = []
-        for response_data in response_data_list:
-            parsed_responses.append(
-                {
-                    "commands_and_parameters": {
-                        "command": response_data.get("command", None),
-                        "parameters": response_data.get("parameters", {}),
-                    },
-                    "thoughts": response_data.get("thoughts", ""),
-                    "criticisms": response_data.get("criticisms", ""),
-                    "additional_info": response_data.get("additional_info", ""),
-                }
-            )
-
-        return parsed_responses
-
-    def execute_commands(self, commands_and_parameters):
-        command_name = commands_and_parameters.get("command")
-        parameters = commands_and_parameters.get("parameters", {})
-
-        if command_name in self.available_commands:
-            try:
-                execution_result = self.available_commands[command_name](**parameters)
-            except TypeError as e:
-                print(
-                    f"Error executing command: {command_name} with parameters: {parameters}"
+            if action == "add":
+                memory.append(memory_item)
+            elif action == "update":
+                # Find the index of the memory item to update.
+                index = next(
+                    (
+                        i
+                        for i, item in enumerate(memory)
+                        if item["type"] == memory_item["type"]
+                    ),
+                    None,
                 )
-                print(f"Exception: {e}")
-                execution_result = {
-                    "error": f"Failed to execute command '{command_name}' with parameters: {parameters}. Exception: {e}"
-                }
-        else:
-            print(
-                f"Command '{command_name}' not recognized. Please check the command name."
-            )
-            execution_result = {}
 
-        return execution_result
+                if index is not None:
+                    memory[index] = memory_item
+            elif action == "delete":
+                memory[:] = [
+                    item for item in memory if item["type"] != memory_item["type"]
+                ]
 
-    # Define your available commands and corresponding functions here
-    available_commands = {
-        "Search": search,
-        "ViewFile": view_file,
-        "EditFile": edit_file,
-        "CreateFile": create_file,
-        "Calculate": calculate,
-        "Git": git_command,
-    }
+
+def main():
+    ActionAgent().perform_task(
+        "Create a main.py file",
+        "Put it here: /Users/russellocean/Dev/test, it should print 'Hello, world!'",
+    )
+
+
+if __name__ == "__main__":
+    main()

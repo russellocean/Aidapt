@@ -51,13 +51,14 @@ def view_file(filepath):
         return f"Error: File not found at {filepath}"
 
 
-def edit_file(filepath, edits):
+def edit_file(filepath, new_contents):
     """
     Apply the specified edits to the file at the given filepath,
     save the file, and return the edited file content or a summary of changes.
     """
     # Implement the edit functionality as needed, e.g., using regex, parsers, etc.
-    ...
+    with open(filepath, "w") as file:
+        file.write(new_contents)
 
 
 def is_simple_expression(expression):

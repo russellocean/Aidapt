@@ -1,21 +1,20 @@
-from agents.action_agent import ActionAgent
-from agents.manager_agent import ManagerAgent
+from agents.agent import Agent
+from agents.manager_agent import AgentManager
 from database.codebase_database import convert_to_database
-from ui.prompts import build_action_prompt, build_manager_prompt
 from ui.user_interface import (
     choose_project_source,
     clone_repository,
-    display_manager_task_list,
-    display_prompt,
-    display_task_result,
+    display_intermediate_response,
     display_user_input,
     get_project_folder,
     get_user_input,
-    separator,
 )
 
 
 def main():
+    # Set the callback for the Agent class, dont set output raw steps to console.
+    Agent.set_callback(display_intermediate_response)
+
     # Welcome the user to
     # Step 1: Initialize project
     project_source = choose_project_source()
@@ -30,84 +29,31 @@ def main():
     codebase_database = convert_to_database(project_folder, project_source)
 
     # Step 3: Create Manager Agent and Action Agent with necessary tools
-    manager_agent = ManagerAgent(codebase_database)
-    action_agent = ActionAgent()
+    manager_agent = AgentManager()
 
     # Step 4: Begin interaction loop between user and AI agent
-    interaction_loop(manager_agent, action_agent, codebase_database)
+    interaction_loop(manager_agent, codebase_database)
 
 
-def interaction_loop(manager_agent, action_agent, codebase_database=None):
+def interaction_loop(manager_agent, codebase_database=None):
     while True:
         user_input = get_user_input()
+        if user_input == "":
+            user_input = "Write a Python program that prints 'Hello World!' in the directory /Users/russellocean/Dev/test"
+
         display_user_input(user_input)
 
-        task_results = []
+        if user_input == "exit":
+            break
 
-        if codebase_database:
-            context_vector = codebase_database.search_faiss_index(user_input)
-
-        manager_prompt = build_manager_prompt(
-            user_input,
-            previous_responses=task_results,
-            context_vector=context_vector,
-        )
-        while True:
-            task_list = manager_agent.process_input(manager_prompt)
-
-            display_manager_task_list(task_list)
-
-            # Check if the special value (None) is returned, and break the loop if it is
-            if task_list is None:
-                separator()
-                display_prompt("No more tasks to perform", style="bold red")
-                break
-
-            for task in task_list:
-                action_prompt = build_action_prompt(task)
-                task_result = action_agent.process_input(action_prompt)
-
-                task_results.append(task_result)
-
-                display_task_result(task, task_result)
-
-                agent_feedback = format_agent_conversation(task_list, task_results)
-
-                # Send the results back to the Manager Agent for evaluation
-                manager_prompt = build_manager_prompt(
-                    user_input, previous_responses=agent_feedback
-                )
-
-                task_list = manager_agent.process_input(manager_prompt)
-                display_manager_task_list(task_list)
-
-
-def format_agent_conversation(task_list, task_results):
-    if task_list is None or task_results is None:
-        return None
-
-    formatted_results = []
-
-    min_length = min(len(task_list), len(task_results))
-
-    for index in range(min_length):
-        task_result = task_results[index]
-        if task_result is None:
+        if user_input == "help":
+            # display_help()
             continue
 
-        task = task_list[index]
-        for result in task_result:
-            task_str = f"Task: {task['task']} ({task['additional_info']})"
-            task_thoughts = f"Thoughts: \"{result['thoughts']}\""
-            tool_str = f"Tool Used: {result['command']}"
-            result_str = f"Tool Result: {result['result']}"
-
-            formatted_result = (
-                f"{task_str}\n{task_thoughts}\n{tool_str}\n{result_str}".strip()
-            )
-            formatted_results.append(formatted_result)
-
-    return "\n\n".join(formatted_results)
+        manager_agent.run(
+            users_objective=user_input,
+            confirmation=True,
+        )
 
 
 if __name__ == "__main__":
