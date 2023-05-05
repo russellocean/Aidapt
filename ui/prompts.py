@@ -29,7 +29,9 @@ def build_manager_prompt(
     return prompt
 
 
-def build_action_prompt(task, message, memory_items=None, tool_list=None):
+def build_action_prompt(
+    task, message, memory_items=None, tool_list=None, task_list=None
+):
     if memory_items is None:
         memory_items = []
     if tool_list is None:
@@ -42,6 +44,7 @@ def build_action_prompt(task, message, memory_items=None, tool_list=None):
         message=message,
         memory_items=memory_items,
         tool_list=tool_list,
+        task_list=task_list,
     )
 
     return prompt

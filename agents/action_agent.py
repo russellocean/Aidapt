@@ -1,7 +1,7 @@
 from ui.prompts import build_action_prompt
 
 from .agent import Agent
-from .tools import create_file, search
+from .tools import create_file, edit_file, search
 
 
 class ActionAgent(Agent):
@@ -18,24 +18,30 @@ class ActionAgent(Agent):
                 "description": "Create a new file at the given filepath with the specified content.",
                 "parameters": ["filepath", "content"],
             },
+            "edit_file": {
+                "function": edit_file,
+                "description": "Apply the specified edits to the file at the given filepath, save the file, and return the edited file content or a summary of changes.",
+                "parameters": ["filepath", "new_contents"],
+            },
         }
         self.callback = self.get_callback()
 
-    def build_prompt(self, task, message, memory_items):
+    def build_prompt(self, task, message, memory_items, task_list=None):
         prompt = build_action_prompt(
             task=task,
             message=message,
             memory_items=memory_items,
             tool_list=self.display_tools(),
+            task_list=task_list,
         )
 
         return prompt
 
-    def perform_task(self, task, message, memory=None):
+    def perform_task(self, task, message, memory=None, task_list=None):
         # Override the base class method to provide action-specific functionality.
 
         # Build the prompt for the Action Agent.
-        prompt = self.build_prompt(task, message, memory)
+        prompt = self.build_prompt(task, message, memory, task_list)
 
         # Ask the AI agent using the built prompt.
         response = self.process_input(prompt)

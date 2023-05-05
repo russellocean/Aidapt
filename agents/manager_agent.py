@@ -143,7 +143,9 @@ class AgentManager(Agent):
 
         if normalized_agent_name == "actionagent":
             self.callback("delegating", f"delegating task {task} to {agent_name}.")
-            result = ActionAgent().perform_task(task, message)
+            result = ActionAgent().perform_task(
+                task, message, memory=None, task_list=self.tasks
+            )
         else:
             self.callback("delegating", f"Agent {agent_name} is not supported.")
             result = f"Agent {agent_name} is not supported."
