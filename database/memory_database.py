@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Any, Dict, List, Optional
 
 import openai
@@ -21,7 +22,10 @@ class MemoryDatabase:
         if index_name not in pinecone.list_indexes():
             print(f"Creating index {index_name}...")
             pinecone.create_index(index_name, dimension=1536, metric="cosine")
+            # Wait an additional 5 seconds for the index to be created
+            time.sleep(5)  # wait for 5 seconds
         # Connect to index
+        self.index_name = index_name
         self.index = pinecone.Index(index_name)
         # View index stats
         # print(f"Index stats for {index_name}:")
@@ -29,8 +33,7 @@ class MemoryDatabase:
         # self.pinecone = pinecone.deinit()
 
     def __del__(self):
-        # pinecone.delete_index(index_name)
-        ...
+        pinecone.delete_index(self.index_name)
 
     def create_embeddings(self, inputs: List[str]) -> List[List[float]]:
         embeddings = []
@@ -182,7 +185,8 @@ def main():
     print("Deleting index...")
 
     # Delete the index
-    pinecone.delete_index(index_name)
+    # Database gets deleted when the MemoryDatabase object is deleted
+    # pinecone.delete_index(index_name)
 
     print("Done!")
 
