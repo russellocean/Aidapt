@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 import openai
 import pinecone
 from dotenv import load_dotenv
-from langchain.embeddings import OpenAIEmbeddings
 
 # Load the variables from the .env file
 load_dotenv()
@@ -13,7 +12,6 @@ load_dotenv()
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 PINECONE_ENV = os.getenv("PINECONE_ENV")
 
-openai_embeddings = OpenAIEmbeddings()
 embed_model = "text-embedding-ada-002"
 
 
@@ -38,7 +36,6 @@ class MemoryDatabase:
         embeddings = []
         for input_text in inputs:
             # response = self.openai.Embed.create(model="text-embedding-ada-002", input=input_text)
-            # response = openai_embeddings.embed_query(input_text)
             response = openai.Embedding.create(input=[input_text], engine=embed_model)
             embeddings.append(response["data"][0]["embedding"])
         return embeddings
