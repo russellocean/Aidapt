@@ -25,12 +25,13 @@ class ActionAgent(Agent):
             },
         }
         self.callback = self.get_callback()
+        self.memory = self.get_memory_database()
 
-    def build_prompt(self, task, message, memory_items, task_list=None):
+    def build_prompt(self, task, message, task_list=None):
         prompt = build_action_prompt(
             task=task,
             message=message,
-            memory_items=memory_items,
+            memory=self.memory,
             tool_list=self.display_tools(),
             task_list=task_list,
         )
@@ -41,7 +42,8 @@ class ActionAgent(Agent):
         # Override the base class method to provide action-specific functionality.
 
         # Build the prompt for the Action Agent.
-        prompt = self.build_prompt(task, message, memory, task_list)
+        prompt = self.build_prompt(task, message, task_list)
+        # self.callback("prompt", prompt)
 
         # Ask the AI agent using the built prompt.
         response = self.process_input(prompt)
@@ -54,38 +56,43 @@ class ActionAgent(Agent):
 
         # Update memory based on the AI response.
         if "mem_updates" in response:
-            # self.update_memory(response["mem_updates"], memory)
-            print(f"Updated memory: {memory}")
+            self.update_memory(response["mem_updates"])
 
         return response["result"]
 
-    def update_memory(self, mem_updates, memory):
+    def update_memory(self, mem_updates):
         for mem_update in mem_updates:
             action = mem_update["action"]
-            memory_item = mem_update["memory_item"]
+            memory_parameters = mem_update["memory_parameters"]
 
             if action == "add":
-                memory.append(memory_item)
+                self.memory.store_memories([memory_parameters])
             elif action == "update":
-                # Find the index of the memory item to update.
-                index = next(
-                    (
-                        i
-                        for i, item in enumerate(memory)
-                        if item["type"] == memory_item["type"]
-                    ),
-                    None,
-                )
+                # memory_id = memory_parameters["id"]
+                # new_content = memory_parameters.get("content", None)
+                # new_metadata = memory_parameters.get("metadata", None)
+                # self.memory.update_memory(memory_id, new_content, new_metadata)
 
-                if index is not None:
-                    memory[index] = memory_item
+                # TODO: Implement this.
+                # For now, just overwrite the memory.
+                # This is because pinecone update function is not working.
+                self.memory.store_memories([memory_parameters])
             elif action == "delete":
-                memory[:] = [
-                    item for item in memory if item["type"] != memory_item["type"]
-                ]
+                memory_id = memory_parameters["id"]
+                self.memory.delete_memory(memory_id)
 
 
 def main():
+    from database.memory_database import MemoryDatabase
+
+    # Set the name of the index to use for the memory database.
+    index_name = "codebase-assistant"
+
+    # Create the global memory database.
+    memory_database = MemoryDatabase(index_name)
+
+    # Set the memory database for the Agent class.
+    Agent.set_memory_database(memory_database)
     ActionAgent().perform_task(
         "Create a main.py file",
         "Put it here: /Users/russellocean/Dev/test, it should print 'Hello, world!'",

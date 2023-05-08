@@ -14,10 +14,12 @@ openai.api_key = OPENAI_API_KEY
 
 class Agent:
     _callback = None
+    _memory_database = None
 
     def __init__(self):
         self.tools = self.get_available_tools()
         self.callback = self.get_callback()
+        self.memory_database = self.get_memory_database()
 
     def __str__(self):
         tools_str = []
@@ -44,6 +46,14 @@ class Agent:
         print(f"Output type: {output_type}")
         if intermediate_response is not None:
             print(f"Intermediate response: {intermediate_response}")
+
+    @classmethod
+    def set_memory_database(cls, memory_database):
+        cls._memory_database = memory_database
+
+    @classmethod
+    def get_memory_database(cls):
+        return cls._memory_database
 
     def display_tools(self):
         tools_str = []

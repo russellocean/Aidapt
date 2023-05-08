@@ -12,6 +12,7 @@ class AgentManager(Agent):
         self.users_objective = users_objective
         self.tasks = []
         self.callback = self.get_callback()
+        self.memory = self.get_memory_database()
 
     def run(self, users_objective=None, confirmation=False):
         if users_objective is None:
@@ -19,6 +20,7 @@ class AgentManager(Agent):
         else:
             self.users_objective = users_objective
         self.prompt = self.build_prompt()
+        # self.callback("prompt", self.prompt)
 
         self.objective_met = False
         self.final_answer = None
@@ -49,6 +51,7 @@ class AgentManager(Agent):
 
             # Build the next prompt
             self.prompt = self.build_prompt(execution_responses)
+            # self.callback("prompt", self.prompt)
 
         # Once the loop ends, return the final answer (if the objective has been met)
         if self.objective_met:
@@ -70,6 +73,7 @@ class AgentManager(Agent):
             tool_list=self.tools,
             task_list=self.tasks,
             execution_responses=execution_responses,
+            memory=self.memory,
         )
 
         return prompt

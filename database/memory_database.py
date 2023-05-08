@@ -32,7 +32,10 @@ class MemoryDatabase:
         # print(self.index.describe_index_stats())
         # self.pinecone = pinecone.deinit()
 
-    def __del__(self):
+    # def __del__(self):
+    #     pinecone.delete_index(self.index_name)
+
+    def close(self):
         pinecone.delete_index(self.index_name)
 
     def create_embeddings(self, inputs: List[str]) -> List[List[float]]:
@@ -50,7 +53,9 @@ class MemoryDatabase:
         for memory, embedding in zip(memories, embeddings):
             metadata = memory["metadata"].copy()
             metadata["content"] = memory["content"]
-            vector_data.append((memory["id"], embedding, metadata))
+            # Convert the memory id to a string
+            memory_id_str = str(memory["id"])
+            vector_data.append((memory_id_str, embedding, metadata))
 
         # Use the upsert function with the list of tuples
         self.index.upsert(vector_data)
@@ -81,6 +86,21 @@ class MemoryDatabase:
 
     def delete_memory(self, memory_id: str):
         self.index.delete(ids=[memory_id])
+
+    def query_relevant_memories(
+        self, task: str, message: str, threshold: float = 0.7, top_k: int = 5
+    ) -> List[str]:
+        query = f"{task} {message}"
+        results = self.query_memories(query, top_k=top_k)
+
+        relevant_memories = []
+        for result in results:
+            if result["score"] >= threshold:
+                relevant_memories.append(
+                    f"  ID: {result['id']}, Content: {result['metadata']['content']}, Score: {result['score']}"
+                )
+
+        return relevant_memories
 
 
 def main():

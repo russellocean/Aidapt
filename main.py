@@ -1,6 +1,7 @@
 from agents.agent import Agent
 from agents.manager_agent import AgentManager
 from database.codebase_database import convert_to_database
+from database.memory_database import MemoryDatabase
 from ui.user_interface import (
     choose_project_source,
     clone_repository,
@@ -14,6 +15,15 @@ from ui.user_interface import (
 def main():
     # Set the callback for the Agent class, dont set output raw steps to console.
     Agent.set_callback(display_intermediate_response)
+
+    # Set the name of the index to use for the memory database.
+    index_name = "codebase-assistant"
+
+    # Create the global memory database.
+    memory_database = MemoryDatabase(index_name)
+
+    # Set the memory database for the Agent class.
+    Agent.set_memory_database(memory_database)
 
     # Welcome the user to
     # Step 1: Initialize project

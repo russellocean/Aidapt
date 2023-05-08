@@ -3,7 +3,11 @@ from string import Template
 
 
 def build_manager_prompt(
-    users_objective, tool_list=None, task_list=None, execution_responses=None
+    users_objective,
+    tool_list=None,
+    task_list=None,
+    execution_responses=None,
+    memory=None,
 ):
     if tool_list is None:
         tool_list = "No tools available."
@@ -17,32 +21,44 @@ def build_manager_prompt(
     else:
         execution_responses = ""
 
+    relevant_memories = memory.query_relevant_memories(task=task_list, message="")
+
+    if len(relevant_memories) > 0:
+        memory_prompt = "Relevant memories found:\n" + "\n".join(relevant_memories)
+    else:
+        memory_prompt = "No relevant memories were found."
+
     prompt = read_prompt(
         "prompts.txt",
         "manager_prompt",
         users_objective=users_objective,
         execution_responses=execution_responses,
+        memory_prompt=memory_prompt,
         tool_list=tool_list,
         task_list=task_list,
+        memory=memory,
     )
 
     return prompt
 
 
-def build_action_prompt(
-    task, message, memory_items=None, tool_list=None, task_list=None
-):
-    if memory_items is None:
-        memory_items = []
+def build_action_prompt(task, message, memory, tool_list=None, task_list=None):
     if tool_list is None:
         tool_list = []
+
+    relevant_memories = memory.query_relevant_memories(task, message)
+
+    if len(relevant_memories) > 0:
+        memory_prompt = "Relevant memories found:\n" + "\n".join(relevant_memories)
+    else:
+        memory_prompt = "No relevant memories were found."
 
     prompt = read_prompt(
         "prompts.txt",
         "action_prompt",
         task=task,
         message=message,
-        memory_items=memory_items,
+        memory_prompt=memory_prompt,
         tool_list=tool_list,
         task_list=task_list,
     )
