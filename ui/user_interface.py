@@ -147,8 +147,11 @@ def display_agent_response(feedback):
     if "agent_calls" in feedback:
         display_agent_calls(feedback["agent_calls"])
 
-    # if "current_task_list" in feedback:
-    #     display_current_task_list(feedback["current_task_list"])
+    if "current_task_list" in feedback:
+        display_current_task_list(feedback["current_task_list"])
+
+    if "mem_updates" in feedback:
+        display_memory_updates(feedback["mem_updates"])
 
 
 def display_tools_to_run(tools):
@@ -252,12 +255,6 @@ def display_tool_message(feedback):
 def display_memory_updates(mem_updates):
     if mem_updates:
         console.print("\n[bold magenta]Memory Updates:[/bold magenta]")
-        console.print(
-            "Action: The type of action performed on the memory.\n"
-            "Memory ID: The unique identifier of the memory.\n"
-            "Content: The content of the memory.\n"
-            "Metadata: Additional information related to the memory."
-        )
         table = Table(
             show_header=True,
             header_style="bold magenta",

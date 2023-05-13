@@ -45,7 +45,7 @@ class AgentManager(Agent):
 
             execution_responses = self.process_response(response)
 
-            self.callback("tasks", self.tasks)
+            # self.callback("tasks", self.tasks)
 
             if execution_responses is not None:
                 execution_responses = (
@@ -109,7 +109,7 @@ class AgentManager(Agent):
         # Update memory based on the AI response.
         if "mem_updates" in response:
             self.update_memory(response["mem_updates"])
-            self.callback("memory", response["mem_updates"])
+            # self.callback("memory", response["mem_updates"])
 
         # If tools_to_run is not empty (i.e., there are tools to run), execute them.
         self.execute_tools(tools_to_run)
