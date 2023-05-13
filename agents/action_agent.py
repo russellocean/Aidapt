@@ -1,3 +1,11 @@
+from agents.tools import (
+    calculate,
+    create_file,
+    delete_file,
+    rename_file,
+    search,
+    view_file,
+)
 from ui.prompts import build_action_prompt
 
 from .agent import Agent
@@ -17,6 +25,26 @@ class ActionAgent(Agent):
                 "function": create_file,
                 "description": "Create a new file at the given filepath with the specified content.",
                 "parameters": ["filepath", "content"],
+            },
+            "view_file": {
+                "function": view_file,
+                "description": "Return the contents of the file at the given filepath.",
+                "parameters": ["filepath"],
+            },
+            "delete_file": {
+                "function": delete_file,
+                "description": "Delete the file at the given filepath.",
+                "parameters": ["filepath"],
+            },
+            "rename_file": {
+                "function": rename_file,
+                "description": "Rename the file at the given old_filepath to the new_filepath.",
+                "parameters": ["old_filepath", "new_filepath"],
+            },
+            "calculate": {
+                "function": calculate,
+                "description": "Calculate the result of the given expression.",
+                "parameters": ["expression"],
             },
             "edit_file": {
                 "function": edit_file,

@@ -6,6 +6,8 @@ import requests
 import wolframalpha
 from dotenv import load_dotenv
 
+from .agent import Agent
+
 # Load the variables from the .env file
 load_dotenv()
 
@@ -36,29 +38,6 @@ def search(query):
         # print(f"{idx + 1}. {title}\n   {link}\n" + "-" * 40)
 
     return results
-
-
-def view_file(filepath):
-    """
-    Read the content of the file at the given filepath
-    and return the file content.
-    """
-    try:
-        with open(filepath, "r") as file:
-            content = file.read()
-        return content
-    except FileNotFoundError:
-        return f"Error: File not found at {filepath}"
-
-
-def edit_file(filepath, new_contents):
-    """
-    Apply the specified edits to the file at the given filepath,
-    save the file, and return the edited file content or a summary of changes.
-    """
-    # Implement the edit functionality as needed, e.g., using regex, parsers, etc.
-    with open(filepath, "w") as file:
-        file.write(new_contents)
 
 
 def is_simple_expression(expression):
@@ -118,9 +97,19 @@ def create_file(filepath, content):
     """
     Create a new file at the given filepath with the specified content.
     """
+    memory_database = Agent.get_memory_database()
+
     try:
+        # Create the directory if it doesn't exist
+        dir_name = os.path.dirname(filepath)
+        if not os.path.exists(dir_name):
+            os.makedirs(dir_name)
+
+        # Create the file
         with open(filepath, "w") as file:
             file.write(content)
+
+        memory_database.add_file_memory(filepath, content)
         return f"Successfully created file at {filepath}"
     except Exception as e:
         return f"Error: {str(e)}"
@@ -130,8 +119,12 @@ def delete_file(filepath):
     """
     Delete the file at the given filepath.
     """
+    memory_database = Agent.get_memory_database()
+
     try:
         os.remove(filepath)
+        memory_id = f"file-{filepath}"
+        memory_database.delete_memory(memory_id)
         return f"Successfully deleted file at {filepath}"
     except FileNotFoundError:
         return f"Error: File not found at {filepath}"
@@ -143,13 +136,56 @@ def rename_file(old_filepath, new_filepath):
     """
     Rename the file at the given old_filepath to the new_filepath.
     """
+    memory_database = Agent.get_memory_database()
+
     try:
         os.rename(old_filepath, new_filepath)
+        old_memory_id = f"file-{old_filepath}"
+        old_file_memory = memory_database.query_memories(old_memory_id, top_k=1)
+        if old_file_memory:
+            content = old_file_memory[0]["metadata"]["content"]
+            memory_database.delete_memory(old_memory_id)
+            memory_database.add_file_memory(new_filepath, content)
         return f"Successfully renamed file from {old_filepath} to {new_filepath}"
     except FileNotFoundError:
         return f"Error: File not found at {old_filepath}"
     except Exception as e:
         return f"Error: {str(e)}"
+
+
+def view_file(filepath):
+    memory_database = Agent.get_memory_database()
+
+    memory_id = f"file-{filepath}"
+    file_memory = memory_database.query_memories(memory_id, top_k=1)
+
+    if file_memory:
+        content = file_memory[0]["metadata"]["content"]
+    else:
+        content = f"Error: File memory not found for {filepath}"
+
+    return content
+
+
+def edit_file(filepath, new_contents):
+    memory_database = Agent.get_memory_database()
+
+    memory_id = f"file-{filepath}"
+    file_memory = memory_database.query_memories(memory_id, top_k=1)  # noqa: F841
+
+    # if file_memory:
+    #     # Update the file content in the memory
+    #     # Currently update_memory doesn't work, so just use add_file_memory
+    #     memory_database.update_memory(
+    #         memory_id, new_content=new_contents, new_metadata={"file_path": filepath}
+    #     )
+    # else:
+    # Add a new memory for the file
+    memory_database.add_file_memory(filepath, new_contents)
+
+    # Implement the edit functionality as needed, e.g., using regex, parsers, etc.
+    with open(filepath, "w") as file:
+        file.write(new_contents)
 
 
 def run_tests(test_command):

@@ -59,7 +59,8 @@ class MemoryDatabase:
         # Create a list of tuples to store vector information
         vector_data = []
         for memory, embedding in zip(memories, embeddings):
-            metadata = memory["metadata"].copy()
+            # Create a copy of the metadata and add the content
+            metadata = memory.get("metadata", {}).copy()
             metadata["content"] = memory["content"]
             # Convert the memory id to a string
             memory_id_str = str(memory["id"])
@@ -71,7 +72,7 @@ class MemoryDatabase:
     def query_memories(self, query: str, top_k: int = 5) -> List[dict]:
         embedding = self.create_embeddings([query])[0]
         results = self.index.query(
-            vector=embedding, top_k=top_k, include_metadata=True, include_values=True
+            vector=embedding, top_k=top_k, include_metadata=True, include_values=False
         )
         return results.matches
 
@@ -109,6 +110,18 @@ class MemoryDatabase:
                 )
 
         return relevant_memories
+
+    def add_file_memory(
+        self, file_path: str, content: str, metadata: Optional[Dict[str, Any]] = None
+    ):
+        memory_id = f"file-{file_path}"
+        memory_content = f"File: {file_path}, Content: {content}"
+        if metadata is None:
+            metadata = {}
+        metadata["file_path"] = file_path
+
+        memory = {"id": memory_id, "content": memory_content, "metadata": metadata}
+        self.store_memories([memory])
 
 
 def main():
