@@ -24,6 +24,14 @@ class MemoryDatabase:
             pinecone.create_index(index_name, dimension=1536, metric="cosine")
             # Wait an additional 5 seconds for the index to be created
             time.sleep(5)  # wait for 5 seconds
+        elif index_name in pinecone.list_indexes():
+            print(f"Index {index_name} already exists. Deleting and recreating...")
+            pinecone.delete_index(index_name)
+            print(f"Creating index {index_name}...")
+            pinecone.create_index(index_name, dimension=1536, metric="cosine")
+            # Wait an additional 5 seconds for the index to be created
+            time.sleep(5)  # wait for 5 seconds
+
         # Connect to index
         self.index_name = index_name
         self.index = pinecone.Index(index_name)
