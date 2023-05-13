@@ -45,6 +45,14 @@ class AgentManager(Agent):
 
             execution_responses = self.process_response(response)
 
+            self.callback("tasks", self.tasks)
+
+            if execution_responses is not None:
+                execution_responses = (
+                    "Your agent calls returned the following responses: "
+                    + " ".join(str(x) for x in execution_responses)
+                )
+
             # Check if the objective has been met
             if self.objective_met:
                 break
@@ -90,6 +98,19 @@ class AgentManager(Agent):
         final_answer = response.get("final_answer", "")
         current_task_list = response.get("current_task_list", self.tasks)
 
+        task_strs = [
+            self.task_dict_to_str(task_dict) for task_dict in current_task_list
+        ]
+        tasks_str = " || ".join(task_strs)
+
+        # Update the memory with the current task list
+        self.memory.update_memory(memory_id="0", new_content=tasks_str)
+
+        # Update memory based on the AI response.
+        if "mem_updates" in response:
+            self.update_memory(response["mem_updates"])
+            self.callback("memory", response["mem_updates"])
+
         # If tools_to_run is not empty (i.e., there are tools to run), execute them.
         self.execute_tools(tools_to_run)
 
@@ -103,6 +124,9 @@ class AgentManager(Agent):
             message = agent_call["message"]
 
             worker_result = self.delegate_task(agent_name, task_name, message)
+
+            worker_result = f"{agent_name} performed {task_name} with message: {message} and returned {worker_result}\n"
+
             worker_results.append(worker_result)
             # Update memory and task list as needed, e.g., by adding new tasks or marking tasks as completed.
 
@@ -133,9 +157,12 @@ class AgentManager(Agent):
         # Set self.tasks to the updated_tasks list
         self.tasks = updated_tasks
         # print(f"Updated tasks: {self.tasks}")
-        self.callback("tasks", self.tasks)
 
         return worker_results
+
+    @staticmethod
+    def task_dict_to_str(task_dict):
+        return f"Task {task_dict.get('task_id')}: {task_dict.get('task')} - Completed: {task_dict.get('completed')}"
 
     def delegate_task(self, agent_name, task, message):
         # Interact with the AgentManager to delegate tasks to other agents.
@@ -209,6 +236,25 @@ def format_response(response):
 
 
 def main():
+    from agents.agent import Agent
+    from agents.manager_agent import AgentManager
+    from database.memory_database import MemoryDatabase
+    from ui.user_interface import (
+        display_intermediate_response,
+    )
+
+    # Set the callback for the Agent class, dont set output raw steps to console.
+    Agent.set_callback(display_intermediate_response)
+
+    # Set the name of the index to use for the memory database.
+    index_name = "codebase-assistant"
+
+    # Create the global memory database.
+    memory_database = MemoryDatabase(index_name)
+
+    # Set the memory database for the Agent class.
+    Agent.set_memory_database(memory_database)
+
     AgentManager().run(
         "Write a program that prints 'Hello World!' in Python at this directory: /Users/russellocean/Dev/test. Delegalte the task to the ActionAgent.",
         confirmation=True,

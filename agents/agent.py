@@ -136,3 +136,24 @@ class Agent:
         # This is the main method to be called by the AgentManager.
         # It should be implemented by each agent to provide agent-specific functionality.
         raise NotImplementedError("perform_task() should be implemented by each agent.")
+
+    def update_memory(self, mem_updates):
+        for mem_update in mem_updates:
+            action = mem_update["action"]
+            memory_parameters = mem_update["memory_parameters"]
+
+            if action == "add":
+                self.memory_database.store_memories([memory_parameters])
+            elif action == "update":
+                # memory_id = memory_parameters["id"]
+                # new_content = memory_parameters.get("content", None)
+                # new_metadata = memory_parameters.get("metadata", None)
+                # self.memory.update_memory(memory_id, new_content, new_metadata)
+
+                # TODO: Implement this.
+                # For now, just overwrite the memory.
+                # This is because pinecone update function is not working.
+                self.memory_database.store_memories([memory_parameters])
+            elif action == "delete":
+                memory_id = memory_parameters["id"]
+                self.memory_database.delete_memory(memory_id)

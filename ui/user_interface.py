@@ -74,6 +74,9 @@ def display_intermediate_response(output_type, feedback=None):
     elif output_type == "tool":
         # Display a tool message
         display_tool_message(feedback)
+    elif output_type == "memory":
+        # Display a memory message
+        display_memory_updates(feedback)
     else:
         display_prompt(prompt_text="Invalid output type given.", style="bold red")
 
@@ -144,8 +147,8 @@ def display_agent_response(feedback):
     if "agent_calls" in feedback:
         display_agent_calls(feedback["agent_calls"])
 
-    if "current_task_list" in feedback:
-        display_current_task_list(feedback["current_task_list"])
+    # if "current_task_list" in feedback:
+    #     display_current_task_list(feedback["current_task_list"])
 
 
 def display_tools_to_run(tools):
@@ -176,8 +179,8 @@ def display_agent_calls(agent_calls):
             box=rich.box.ROUNDED,
             pad_edge=True,
         )
-        table.add_column("Agent", style="bold")
-        table.add_column("Task")
+        table.add_column("Agent", style="bold underline")
+        table.add_column("Task", style="bold underline")
         table.add_column("Message")
 
         for agent_call in agent_calls:
@@ -204,7 +207,7 @@ def display_current_task_list(task_list):
         table.add_column("Completed", justify="center", style="bold", no_wrap=True)
 
         for task in task_list:
-            completed = "Yes" if task["completed"] else "No"
+            completed = "✅" if task["completed"] else "❌"
             table.add_row(str(task["task_id"]), task["task"], completed)
 
         console.print(table)
@@ -244,3 +247,35 @@ def display_tool_message(feedback):
     table.add_column("Message", style="bold blue")
     table.add_row(feedback)
     console.print(table)
+
+
+def display_memory_updates(mem_updates):
+    if mem_updates:
+        console.print("\n[bold magenta]Memory Updates:[/bold magenta]")
+        console.print(
+            "Action: The type of action performed on the memory.\n"
+            "Memory ID: The unique identifier of the memory.\n"
+            "Content: The content of the memory.\n"
+            "Metadata: Additional information related to the memory."
+        )
+        table = Table(
+            show_header=True,
+            header_style="bold magenta",
+            box=rich.box.ROUNDED,
+            pad_edge=True,
+        )
+        table.add_column("Action", style="bold")
+        table.add_column("Memory ID")
+        table.add_column("Content")
+        table.add_column("Metadata")
+
+        for update in mem_updates:
+            memory_parameters = update.get("memory_parameters", {})
+            memory_id = memory_parameters.get("id", "")
+            content = memory_parameters.get("content", "")
+            metadata = ", ".join(
+                [f"{k}: {v}" for k, v in memory_parameters.get("metadata", {}).items()]
+            )
+            table.add_row(update.get("action", ""), str(memory_id), content, metadata)
+
+        console.print(table)
