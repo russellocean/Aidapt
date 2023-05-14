@@ -141,7 +141,7 @@ def rename_file(old_filepath, new_filepath):
     try:
         os.rename(old_filepath, new_filepath)
         old_memory_id = f"file-{old_filepath}"
-        old_file_memory = memory_database.query_memories(old_memory_id, top_k=1)
+        old_file_memory = memory_database.query_memories(id=old_memory_id, top_k=1)
         if old_file_memory:
             content = old_file_memory[0]["metadata"]["content"]
             memory_database.delete_memory(old_memory_id)
@@ -157,10 +157,14 @@ def view_file(filepath):
     memory_database = Agent.get_memory_database()
 
     memory_id = f"file-{filepath}"
-    file_memory = memory_database.query_memories(memory_id, top_k=1)
+    file_memory = memory_database.query_memories(id=memory_id, top_k=1, threshold=0.9)
 
     if file_memory:
         content = file_memory[0]["metadata"]["content"]
+    elif os.path.isfile(filepath):
+        with open(filepath, "r") as file:
+            content = file.read()
+        memory_database.add_file_memory(filepath, content)  # Add file to memory
     else:
         content = f"Error: File memory not found for {filepath}"
 
@@ -171,7 +175,7 @@ def edit_file(filepath, new_contents):
     memory_database = Agent.get_memory_database()
 
     memory_id = f"file-{filepath}"
-    file_memory = memory_database.query_memories(memory_id, top_k=1)  # noqa: F841
+    file_memory = memory_database.query_memories(id=memory_id, top_k=1)  # noqa: F841
 
     # if file_memory:
     #     # Update the file content in the memory

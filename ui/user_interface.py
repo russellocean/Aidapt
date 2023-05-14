@@ -268,11 +268,20 @@ def display_memory_updates(mem_updates):
 
         for update in mem_updates:
             memory_parameters = update.get("memory_parameters", {})
-            memory_id = memory_parameters.get("id", "")
-            content = memory_parameters.get("content", "")
-            metadata = ", ".join(
-                [f"{k}: {v}" for k, v in memory_parameters.get("metadata", {}).items()]
-            )
-            table.add_row(update.get("action", ""), str(memory_id), content, metadata)
+            memory_id = force_string(memory_parameters.get("id", ""))
+            content = force_string(memory_parameters.get("content", ""))
+            metadata = force_string(memory_parameters.get("metadata", {}))
+            table.add_row(update.get("action", ""), memory_id, content, metadata)
 
         console.print(table)
+
+
+def force_string(obj):
+    if isinstance(obj, str):
+        return obj
+    elif isinstance(obj, list):
+        return ", ".join([force_string(item) for item in obj])
+    elif isinstance(obj, dict):
+        return ", ".join([f"{k}: {force_string(v)}" for k, v in obj.items()])
+    else:
+        return str(obj)

@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from typing import Any, Dict, List, Optional
@@ -55,7 +56,11 @@ class MemoryDatabase:
         return embeddings
 
     def store_memories(self, memories: List[dict]):
-        embeddings = self.create_embeddings([memory["content"] for memory in memories])
+        non_empty_memories = [memory for memory in memories if memory["content"]]
+        embeddings = self.create_embeddings(
+            [memory["content"] for memory in non_empty_memories]
+        )
+
         # Create a list of tuples to store vector information
         vector_data = []
         for memory, embedding in zip(memories, embeddings):
@@ -69,11 +74,40 @@ class MemoryDatabase:
         # Use the upsert function with the list of tuples
         self.index.upsert(vector_data)
 
-    def query_memories(self, query: str, top_k: int = 5) -> List[dict]:
-        embedding = self.create_embeddings([query])[0]
-        results = self.index.query(
-            vector=embedding, top_k=top_k, include_metadata=True, include_values=False
-        )
+    def stringify_content(self, content):
+        if isinstance(content, dict):
+            return json.dumps(content)
+        elif isinstance(content, list):
+            return (
+                json.dumps(content)
+                if all(isinstance(i, dict) for i in content)
+                else " ".join(map(str, content))
+            )
+        else:
+            return str(content)
+
+    def query_memories(
+        self, query: str = None, id: str = None, top_k: int = 5, threshold: float = None
+    ) -> List[dict]:
+        if query is not None:
+            embedding = self.create_embeddings([query])[0]
+            results = self.index.query(
+                vector=embedding,
+                top_k=top_k,
+                include_metadata=True,
+                include_values=False,
+            )
+        elif id is not None:
+            results = self.index.query(
+                id=id, top_k=top_k, include_metadata=True, include_values=False
+            )
+        else:
+            raise ValueError("You must provide either 'query' or 'id'.")
+
+        if threshold is not None:
+            results.matches = [
+                result for result in results.matches if result["score"] >= threshold
+            ]
         return results.matches
 
     def update_memory(
@@ -123,6 +157,9 @@ class MemoryDatabase:
         memory = {"id": memory_id, "content": memory_content, "metadata": metadata}
         self.store_memories([memory])
 
+    def fetch(self, memory_id: str):
+        return self.index.fetch(ids=[memory_id])
+
 
 def main():
     index_name = "codebase-assistant"
@@ -132,8 +169,8 @@ def main():
     # Store some example programming tasks
     programming_tasks = [
         {
-            "id": "1",
-            "content": "Implement a function to reverse a string in Python",
+            "id": "file-test.py",
+            "content": "from typing import List\n\n\ndef reverse_string(string: str) -> str:\n    return string[::-1]\n\n\nif __name__ == '__main__':\n    print(reverse_string('Hello World'))",
             "metadata": {"language": "Python"},
         },
         {
@@ -222,6 +259,9 @@ def main():
         print(
             f"  ID: {match['id']}, Content: {match['metadata']['content']}, Score: {match['score']}"
         )
+
+    fetch = memory_database.query_memories(id="file-test.py")
+    print(f"Fetch by id: {fetch}")
 
     print("Deleting index...")
 

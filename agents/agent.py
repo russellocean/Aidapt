@@ -91,13 +91,17 @@ class Agent:
         return ai_response
 
     def parse_response(self, ai_response):
-        # Replace single quotes with double quotes
-        # ai_response = ai_response.replace("'", '"')
+        # Replace 'True' and 'False' with 'true' and 'false'
+        ai_response = ai_response.replace("True", "true").replace("False", "false")
 
         # Parse the AI response, which should be in JSON format.
         try:
             parsed_response = json.loads(ai_response)
         except json.JSONDecodeError as e:
+            self.callback(
+                "error",
+                f"doc: {e.doc}, pos: {e.pos}, end: {e.end}, end_lineno: {e.end_lineno}, end_colno: {e.end_colno}",
+            )
             self.callback(
                 "error", f"Error parsing AI response: {e}\n Response: {ai_response}"
             )
