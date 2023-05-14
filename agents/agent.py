@@ -100,7 +100,7 @@ class Agent:
         except json.JSONDecodeError as e:
             self.callback(
                 "error",
-                f"doc: {e.doc}, pos: {e.pos}, end: {e.end}, end_lineno: {e.end_lineno}, end_colno: {e.end_colno}",
+                f"doc: {e.doc}, pos: {e.pos}, lineno: {e.lineno}, colno: {e.colno}, message: {e.msg}",
             )
             self.callback(
                 "error", f"Error parsing AI response: {e}\n Response: {ai_response}"

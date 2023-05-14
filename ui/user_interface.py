@@ -137,7 +137,7 @@ def display_agent_response(feedback):
     console.print("\n[bold blue]Thoughts:[/bold blue]")
     console.print(feedback["thoughts"], style="blue")
 
-    if feedback["criticisms"]:
+    if "criticisms" in feedback and feedback["criticisms"]:
         console.print("\n[bold red]Criticisms:[/bold red]")
         console.print(feedback["criticisms"], style="red")
 
