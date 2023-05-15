@@ -81,8 +81,8 @@ class Agent:
     def ask_agent(self, prompt):
         response = openai.ChatCompletion.create(
             model="gpt-4",
-            temperature=0.2,
-            max_tokens=2000,
+            temperature=0.7,
+            max_tokens=4000,
             messages=[{"role": "user", "content": prompt}],
         )
 
