@@ -168,6 +168,9 @@ def view_file(filepath):
     else:
         content = f"Error: File memory not found for {filepath}"
 
+    if content.strip() == "":
+        content = "The file is empty."
+
     return content
 
 

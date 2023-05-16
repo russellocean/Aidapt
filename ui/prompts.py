@@ -42,9 +42,13 @@ def build_manager_prompt(
     return prompt
 
 
-def build_action_prompt(task, message, memory, tool_list=None, task_list=None):
+def build_action_prompt(
+    task, message, memory, tool_list=None, task_list=None, task_stack=None
+):
     if tool_list is None:
         tool_list = []
+    if task_stack is None:
+        task_stack = ""
 
     relevant_memories = memory.query_relevant_memories(task, message)
 
@@ -61,6 +65,7 @@ def build_action_prompt(task, message, memory, tool_list=None, task_list=None):
         memory_prompt=memory_prompt,
         tool_list=tool_list,
         task_list=task_list,
+        task_stack=task_stack,
     )
 
     return prompt

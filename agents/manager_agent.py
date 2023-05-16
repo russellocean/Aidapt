@@ -174,7 +174,7 @@ class AgentManager(Agent):
 
         if normalized_agent_name == "actionagent":
             self.callback("delegating", f"delegating task {task} to {agent_name}.")
-            result = ActionAgent().perform_task(
+            result = ActionAgent().run_task(
                 task, message, memory=None, task_list=self.tasks
             )
         else:

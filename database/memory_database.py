@@ -139,9 +139,9 @@ class MemoryDatabase:
         relevant_memories = []
         for result in results:
             if result["score"] >= threshold:
-                relevant_memories.append(
-                    f"  ID: {result['id']}, Content: {result['metadata']['content']}, Score: {result['score']}"
-                )
+                metadata = result["metadata"]
+                memory_str = f"  ID: {result['id']}, Content: {metadata['content']}, Metadata: {metadata}, Score: {result['score']}"
+                relevant_memories.append(memory_str)
 
         return relevant_memories
 

@@ -77,6 +77,9 @@ def display_intermediate_response(output_type, feedback=None):
     elif output_type == "memory":
         # Display a memory message
         display_memory_updates(feedback)
+    elif output_type == "task_report":
+        # Display a task report
+        display_task_report(feedback)
     else:
         display_prompt(prompt_text="Invalid output type given.", style="bold red")
 
@@ -285,3 +288,21 @@ def force_string(obj):
         return ", ".join([f"{k}: {force_string(v)}" for k, v in obj.items()])
     else:
         return str(obj)
+
+
+def display_task_report(task_report):
+    console.print("\n[bold green]Task Report:[/bold green]")
+    report_lines = task_report.split("\n")
+
+    table = Table(
+        show_header=True,
+        header_style="bold green",
+        box=rich.box.ROUNDED,
+        pad_edge=True,
+    )
+    table.add_column("Detail", style="bold")
+
+    for line in report_lines:
+        table.add_row(line)
+
+    console.print(table)

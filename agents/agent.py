@@ -109,17 +109,8 @@ class Agent:
             # raise ValueError("AI response is not in the expected JSON format.")
         return parsed_response
 
-    def execute_task(self, task, message, memory):
-        # Process input, interact with AI, and parse the response.
-        response = self.process_input(task, message, memory)
-
-        # If the response contains tools to run, execute them.
-        if "tools_to_run" in response:
-            self.execute_tools(response["tools_to_run"])
-
-        return response
-
     def execute_tools(self, tools_to_run):
+        results = {}
         for tool_info in tools_to_run:
             tool_name = tool_info["tool"]
             parameters = tool_info["parameters"]
@@ -131,10 +122,13 @@ class Agent:
                 self.callback(
                     "tool", f"Tool '{tool_name}' executed with result: {result}"
                 )
+                results[(tool_name, tuple(parameters))] = result
             else:
                 self.callback(
                     "tool", f"Tool '{tool_name}' not available for this agent."
                 )
+
+        return results
 
     def perform_task(self, task, message, memory):
         # This is the main method to be called by the AgentManager.
