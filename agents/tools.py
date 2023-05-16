@@ -93,7 +93,7 @@ def git_command(command, parameters):
         return f"Error: {e.output.decode('utf-8')}"
 
 
-def create_file(filepath, content):
+def create_file(filepath, content=None):
     """
     Create a new file at the given filepath with the specified content.
     """
@@ -108,6 +108,9 @@ def create_file(filepath, content):
         # Create the file
         with open(filepath, "w") as file:
             file.write(content)
+
+        if not content:
+            content = "The file is empty."
 
         memory_database.add_file_memory(filepath, content)
         return f"Successfully created file at {filepath}"

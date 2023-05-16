@@ -4,6 +4,7 @@ from rich import print as rprint
 from rich.table import Table
 from rich.traceback import install
 
+from agents.agent import Agent
 from agents.tools import (
     calculate,
     create_file,
@@ -27,6 +28,9 @@ index_name = "codebase-assistant"
 # Create the global memory database.
 memory_database = MemoryDatabase(index_name)
 
+# Set the memory database for the Agent class.
+Agent.set_memory_database(memory_database)
+
 
 class TestTools(unittest.TestCase):
     def test_search(self):
@@ -40,8 +44,9 @@ class TestTools(unittest.TestCase):
     def test_file_tools(self):
         try:
             # Create file.
-            content = "This is a test file."
-            create_file(TEST_FILE_PATH, content, memory_database)
+            create_file(
+                TEST_FILE_PATH,
+            )
 
             result = memory_database.query_memories(f"file-{TEST_FILE_PATH}", top_k=1)
             rprint("[bold green]========= Create File =========")
@@ -62,7 +67,7 @@ class TestTools(unittest.TestCase):
             rprint(create_table)
 
             # View file.
-            content = view_file(TEST_FILE_PATH, memory_database)
+            view_file(TEST_FILE_PATH)
             result = memory_database.query_memories(f"file-{TEST_FILE_PATH}", top_k=1)
             rprint("[bold yellow]========= View File =========")
             rprint("Expected content: This is a test file.")
@@ -82,7 +87,7 @@ class TestTools(unittest.TestCase):
             rprint(view_table)
 
             # Rename file.
-            rename_file(TEST_FILE_PATH, RENAMED_TEST_FILE_PATH, memory_database)
+            rename_file(TEST_FILE_PATH, RENAMED_TEST_FILE_PATH)
             result = memory_database.query_memories(f"file-{TEST_FILE_PATH}", top_k=1)
             rprint("[bold blue]========= Rename File =========")
             rprint(f"Expected file to be renamed to: {RENAMED_TEST_FILE_PATH}")
@@ -102,7 +107,7 @@ class TestTools(unittest.TestCase):
             rprint(rename_table)
 
             # Delete file.
-            delete_file(RENAMED_TEST_FILE_PATH, memory_database)
+            delete_file(RENAMED_TEST_FILE_PATH)
             result = memory_database.query_memories(f"file-{TEST_FILE_PATH}", top_k=1)
             rprint("[bold red]========= Delete File =========")
             rprint(f"Expected no file with path: {RENAMED_TEST_FILE_PATH}")

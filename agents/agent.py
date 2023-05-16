@@ -1,5 +1,7 @@
 import json
 import os
+import sys
+import time
 
 import openai
 from dotenv import load_dotenv
@@ -79,16 +81,39 @@ class Agent:
         return self.parse_response(ai_response)
 
     def ask_agent(self, prompt):
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            temperature=0.7,
-            max_tokens=4000,
-            messages=[{"role": "user", "content": prompt}],
-        )
+        max_attempts = 5
+        attempts = 0
 
-        ai_response = response.choices[0].message.content.strip()
+        while attempts < max_attempts:
+            try:
+                response = openai.ChatCompletion.create(
+                    model="gpt-4",
+                    temperature=0.7,
+                    max_tokens=4000,
+                    messages=[{"role": "user", "content": prompt}],
+                )
 
-        return ai_response
+                ai_response = response.choices[0].message.content.strip()
+                return ai_response
+
+            except openai.error.RateLimitError:
+                attempts += 1
+                self.callback(
+                    "error",
+                    f"Rate limit exceeded. This is attempt {attempts} of {max_attempts}. Retrying in 5 seconds...",
+                )
+                time.sleep(5)
+
+            except Exception as e:  # catches all other exceptions
+                attempts += 1
+                self.callback(
+                    "error",
+                    f"Attempt: {attempts} of {max_attempts}. An error occurred: {str(e)}. Retrying in 5 seconds...",
+                )
+                time.sleep(5)
+
+        self.callback("error", "Max attempts reached. Exiting.")
+        sys.exit(1)
 
     def parse_response(self, ai_response):
         # Replace 'True' and 'False' with 'true' and 'false'

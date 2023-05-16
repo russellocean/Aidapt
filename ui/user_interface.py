@@ -81,7 +81,9 @@ def display_intermediate_response(output_type, feedback=None):
         # Display a task report
         display_task_report(feedback)
     else:
-        display_prompt(prompt_text="Invalid output type given.", style="bold red")
+        display_prompt(
+            prompt_text=f"{output_type} is an invalid output type. ", style="bold red"
+        )
 
 
 def get_project_folder():
