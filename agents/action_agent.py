@@ -87,18 +87,10 @@ class ActionAgent(Agent):
 
     def process_response(self, response):
         # Extract fields from the response.
-        thoughts = response.get("thoughts", "")
-        criticisms = response.get("criticisms", "")
         next_task = response.get("next_task", None)
         mem_updates = response.get("mem_updates", [])
         tools_to_run = response.get("tools_to_run", [])
         result = response.get("result", "")
-
-        # Process thoughts and criticisms.
-        if thoughts:
-            self.callback("thoughts", thoughts)
-        if criticisms:
-            self.callback("criticisms", criticisms)
 
         # Process memory updates.
         if mem_updates:
