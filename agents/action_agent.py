@@ -18,7 +18,7 @@ class ActionAgent(Agent):
         self.tools = {
             "search": {
                 "function": search,
-                "description": "Use Google search to find information related to the query and return search results or relevant information.",
+                "description": "Use Google search to find information related to the query and return search results or relevant information. This currently only provides the links, and not the text of any webpages.",
                 "parameters": ["query"],
             },
             "create_file": {
@@ -126,17 +126,18 @@ class ActionAgent(Agent):
 
     def build_task_report(self, task, message, tool_results, result):
         report_lines = [
-            f"You previously ran the task '{task}' with the message '{message}'."
+            f"Your previous was was: '{task}' with the message '{message}'."
         ]
 
         for (tool, parameters), tool_result in tool_results.items():
-            parameters_str = ", ".join(map(str, parameters))
+            parameters_str = ",".join(map(str, parameters))
             report_lines.append(
                 f"You ran the tool '{tool}' with the parameters '{parameters_str}' which returned the following: '{tool_result}'"
             )
 
-        if result:
-            report_lines.append(f"You also provided the result: '{result}'")
+        report_lines.append(
+            "Use this information to complete your next task, do not repeat previous tasks."
+        )
 
         return "\n".join(report_lines)
 
