@@ -198,16 +198,41 @@ class MemoryDatabase:
     def query_relevant_memories(
         self, task: str, message: str, threshold: float = 0.7, top_k: int = 5
     ) -> List[str]:
-        """Queries the index for memories relevant to the given task and message."""
+        """
+        TODO - Eventually when we recieve a higher token model we should include file search again. Currently files are too large to be included in the search.
+
+        Queries the index for memories relevant to the given task and message. It excludes
+        memories with IDs that have a file prefix.
+
+        Args:
+            task (str): The task for which to search relevant memories.
+            message (str): The message for which to search relevant memories.
+            threshold (float, optional): The minimum score for a memory to be considered relevant. Defaults to 0.7.
+            top_k (int, optional): The number of relevant memories to return. Defaults to 5.
+
+        Returns:
+            List[str]: The list of relevant memories.
+        """
+
+        # Define the query and initial number of results to get
+        # We need to fetch more results than top_k because we might exclude some
         query = f"{task} {message}"
-        results = self.query_memories(query, top_k=top_k)
+        initial_top_k = top_k * 2  # Assume that at most half the results will be files
+
+        # Query for initial_top_k memories
+        results = self.query_memories(query, top_k=initial_top_k)
 
         relevant_memories = []
         for result in results:
-            if result["score"] >= threshold:
+            # Only include the result if it is above the threshold and doesn't start with 'file-'
+            if result["score"] >= threshold and not result["id"].startswith("file-"):
                 metadata = result["metadata"]
                 memory_str = f"  ID: {result['id']}, Content: {metadata['content']}, Metadata: {metadata}, Score: {result['score']}"
                 relevant_memories.append(memory_str)
+
+                # Stop appending to relevant_memories if we already have top_k entries
+                if len(relevant_memories) == top_k:
+                    break
 
         return relevant_memories
 
