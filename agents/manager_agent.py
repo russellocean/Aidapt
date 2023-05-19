@@ -2,6 +2,7 @@ from agents.action_agent import ActionAgent
 from ui.prompts import build_manager_prompt
 
 from .agent import Agent
+from .analyst_agent import AnalystAgent
 
 
 class AgentManager(Agent):
@@ -123,7 +124,7 @@ class AgentManager(Agent):
             task_name = agent_call["task"]
             message = agent_call["message"]
 
-            worker_result = self.delegate_task(agent_name, task_name, message)
+            worker_result = self.delegate_task(agent_name, task_name, message, response)
 
             worker_result = f"{agent_name} performed {task_name} with message: {message} and returned {worker_result}\n"
 
@@ -164,13 +165,16 @@ class AgentManager(Agent):
     def task_dict_to_str(task_dict):
         return f"Task {task_dict.get('task_id')}: {task_dict.get('task')} - Completed: {task_dict.get('completed')}"
 
-    def delegate_task(self, agent_name, task, message):
+    def delegate_task(self, agent_name, task, message, response):
         # Interact with the AgentManager to delegate tasks to other agents.
         # This method should be called by the AgentManager, which should provide the necessary agent_name, task, message, and memory.
         # The AgentManager can implement a similar method to the one shown in the high-level Python code outline provided earlier.
         result = None
 
         normalized_agent_name = normalize_agent_name(agent_name)
+
+        analysis_feedback = AnalystAgent().run(response)
+        print(f"analysis_feedback: {analysis_feedback}")
 
         if normalized_agent_name == "actionagent":
             self.callback("delegating", f"delegating task {task} to {agent_name}.")

@@ -196,17 +196,23 @@ class MemoryDatabase:
             self.delete_memory(memory_id)
 
     def query_relevant_memories(
-        self, task: str, message: str, threshold: float = 0.7, top_k: int = 5
+        self,
+        task: str,
+        message: str,
+        include_files: bool = False,
+        threshold: float = 0.7,
+        top_k: int = 5,
     ) -> List[str]:
         """
-        TODO - Eventually when we recieve a higher token model we should include file search again. Currently files are too large to be included in the search.
+        TODO - Eventually when we receive a higher token model we should include file search again. Currently files are too large to be included in the search.
 
         Queries the index for memories relevant to the given task and message. It excludes
-        memories with IDs that have a file prefix.
+        memories with IDs that have a file prefix unless include_files is set to True.
 
         Args:
             task (str): The task for which to search relevant memories.
             message (str): The message for which to search relevant memories.
+            include_files (bool, optional): Whether to include files in the search. Defaults to False.
             threshold (float, optional): The minimum score for a memory to be considered relevant. Defaults to 0.7.
             top_k (int, optional): The number of relevant memories to return. Defaults to 5.
 
@@ -224,8 +230,10 @@ class MemoryDatabase:
 
         relevant_memories = []
         for result in results:
-            # Only include the result if it is above the threshold and doesn't start with 'file-'
-            if result["score"] >= threshold and not result["id"].startswith("file-"):
+            # Only include the result if it is above the threshold and doesn't start with 'file-', unless include_files is True
+            if result["score"] >= threshold and (
+                include_files or not result["id"].startswith("file-")
+            ):
                 metadata = result["metadata"]
                 memory_str = f"  ID: {result['id']}, Content: {metadata['content']}, Metadata: {metadata}, Score: {result['score']}"
                 relevant_memories.append(memory_str)
