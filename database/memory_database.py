@@ -205,6 +205,7 @@ class MemoryDatabase:
         Args:
             task (str): The task for which to search relevant memories.
             message (str): The message for which to search relevant memories.
+            include_files (bool, optional): Whether to include files in the search. Defaults to False.
             threshold (float, optional): The minimum score for a memory to be considered relevant. Defaults to 0.7.
             top_k (int, optional): The number of relevant memories to return. Defaults to 5.
 

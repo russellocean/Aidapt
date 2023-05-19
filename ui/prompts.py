@@ -82,3 +82,23 @@ def read_prompt(file_path, prompt_name, **variables):
         template = Template(prompt_template)
         prompt = template.substitute(variables)
         return prompt
+
+
+def build_analyst_prompt(input_data):
+    """
+    Builds an analyst prompt from given input_data.
+
+    Args:
+        input_data (dict): Input data for the prompt.
+
+    Returns:
+        str: The built analyst prompt.
+    """
+
+    prompt = read_prompt(
+        "prompts.txt",
+        "analyst_prompt",
+        input_data=input_data,
+    )
+
+    return prompt
