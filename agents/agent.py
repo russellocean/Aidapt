@@ -89,7 +89,6 @@ class Agent:
                 response = openai.ChatCompletion.create(
                     model="gpt-4",
                     temperature=0.7,
-                    max_tokens=3000,
                     messages=[{"role": "user", "content": prompt}],
                 )
 
