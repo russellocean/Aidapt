@@ -84,7 +84,7 @@ def read_prompt(file_path, prompt_name, **variables):
         return prompt
 
 
-def build_analyst_prompt(input_data):
+def build_analyst_prompt(input_data, agent_name):
     """
     Builds an analyst prompt from given input_data.
 
