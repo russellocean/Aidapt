@@ -105,12 +105,13 @@ def create_file(filepath, content=None):
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
 
+        # Check if content is None. If so, set a default value.
+        if not content:
+            content = "The file is empty."
+
         # Create the file
         with open(filepath, "w") as file:
             file.write(content)
-
-        if not content:
-            content = "The file is empty."
 
         memory_database.add_file_memory(filepath, content)
         return f"Successfully created file at {filepath}"
@@ -143,13 +144,15 @@ def rename_file(old_filepath, new_filepath):
 
     try:
         os.rename(old_filepath, new_filepath)
-        old_memory_id = f"file-{old_filepath}"
-        old_file_memory = memory_database.query_memories(id=old_memory_id, top_k=1)
+        old_file_memory = memory_database.search_file(old_filepath)
+
         if old_file_memory:
-            content = old_file_memory[0]["metadata"]["content"]
-            memory_database.delete_memory(old_memory_id)
+            content = old_file_memory["metadatas"][0]["content"]
+            memory_database.delete_memory(old_file_memory["ids"][0])
             memory_database.add_file_memory(new_filepath, content)
+
         return f"Successfully renamed file from {old_filepath} to {new_filepath}"
+
     except FileNotFoundError:
         return f"Error: File not found at {old_filepath}"
     except Exception as e:

@@ -170,7 +170,16 @@ class MemoryDatabase:
 
     def delete_memory(self, memory_id: str):
         """Deletes a memory from the collection."""
-        self.collection.delete(ids=[memory_id])
+        try:
+            result = self.collection.delete(ids=[memory_id])
+
+            if not result:
+                return f"No memories were deleted. Check if memory with id {memory_id} exists."
+
+            return f"Successfully deleted memory with id: {memory_id}"
+
+        except Exception as e:
+            return f"Error in delete_memory: {str(e)}"
 
     def clear_all_memories(self):
         """Deletes all memories from the collection."""
@@ -246,13 +255,30 @@ class MemoryDatabase:
             List[dict]: The results of the search.
         """
 
-        # Construct the where filter for searching by file_path metadata
-        where_filter = {"metadatas.file_path": {"$eq": file_path}}
+        # Get the ID of the file with the specified file_path
+        file_id = self.get_id_from_filepath(file_path)
 
-        # Query the collection using the where filter
-        results = self.collection.get(where=where_filter)
+        # If the ID was found, get the file data using the ID
+        if file_id:
+            return self.collection.get(ids=[file_id])
 
-        return results
+        # If no ID was found, return an empty list
+        return []
+
+    def get_id_from_filepath(self, file_path: str) -> str:
+        all_documents = self.collection.get()
+
+        # Get the list of metadatas from the dictionary
+        metadatas = all_documents["metadatas"]
+        ids = all_documents["ids"]
+
+        # Iterate over the metadatas list
+        for i, metadata in enumerate(metadatas):
+            if isinstance(metadata, dict) and "file_path" in metadata:
+                if metadata["file_path"] == file_path:
+                    return ids[i]
+
+        return None
 
 
 def main():
