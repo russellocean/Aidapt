@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import sys
 import time
 
@@ -118,19 +119,30 @@ class Agent:
         # Replace 'True' and 'False' with 'true' and 'false'
         ai_response = ai_response.replace("True", "true").replace("False", "false")
 
+        # Use regex to extract JSON from the response
+        json_match = re.search(r"({.*})", ai_response, re.DOTALL)
+        if json_match is None:
+            self.callback(
+                "error", f"Could not extract JSON from response: {ai_response}"
+            )
+            return "Error parsing AI response, please check the response format."
+
+        json_str = json_match.group(1)
+
         # Parse the AI response, which should be in JSON format.
         try:
-            parsed_response = json.loads(ai_response)
+            parsed_response = json.loads(json_str)
         except json.JSONDecodeError as e:
             self.callback(
                 "error",
                 f"doc: {e.doc}, pos: {e.pos}, lineno: {e.lineno}, colno: {e.colno}, message: {e.msg}",
             )
             self.callback(
-                "error", f"Error parsing AI response: {e}\n Response: {ai_response}"
+                "error",
+                f"Error parsing AI response: {e}\n Extracted JSON string: {json_str}",
             )
             return f"Error parsing AI response, please check the response format. Response provided: {e}"
-            # raise ValueError("AI response is not in the expected JSON format.")
+
         return parsed_response
 
     def execute_tools(self, tools_to_run):

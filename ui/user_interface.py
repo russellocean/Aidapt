@@ -323,7 +323,19 @@ def display_task_report(task_report):
 def display_analyst_message(message):
     console.print("\n[bold green]Analyst Message:[/bold green]")
     table = Table(box=rich.box.ROUNDED, pad_edge=True)
+
+    table.add_column("Key", style="bold blue")
+    table.add_column("Value")
+
     for key, value in message.items():
-        table.add_column(key.capitalize(), style="bold blue")
-        table.add_row(str(value))
+        if isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    for subkey, subvalue in item.items():
+                        table.add_row(f"{key} - {subkey}", str(subvalue))
+                else:
+                    table.add_row(key, str(item))
+        else:
+            table.add_row(key, str(value))
+
     console.print(table)

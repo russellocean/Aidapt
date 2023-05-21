@@ -214,9 +214,7 @@ def main():
         ],
     }"""
 
-    output = AnalystAgent().run(manager_response)
-
-    print(f"Output from Manager Response was:\n {output}")
+    AnalystAgent().run(manager_response)
 
 
 if __name__ == "__main__":
