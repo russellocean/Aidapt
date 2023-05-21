@@ -52,8 +52,12 @@ def main():
 
 
 def interaction_loop(manager_agent, codebase_database=None):
+    # This is an infinite loop that will continue to ask for and process user input until the user enters "exit".
     while True:
+        # Step 1: Get the user input. This is what the user wants the AI to do.
         user_input = get_user_input()
+
+        # If no input is provided by the user, set a default input.
         if user_input == "":
             user_input = "Write a Python program that prints 'Hello World!' in the directory /Users/russellocean/Dev/test"
 
@@ -66,6 +70,7 @@ def interaction_loop(manager_agent, codebase_database=None):
             # display_help()
             continue
 
+        # Run the manager agent with the user's objective. The 'confirmation' parameter set to True means the agent will confirm actions before taking them.
         manager_agent.run(
             users_objective=user_input,
             confirmation=True,
