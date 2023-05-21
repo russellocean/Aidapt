@@ -80,14 +80,14 @@ class Agent:
         ai_response = self.ask_agent(prompt)
         return self.parse_response(ai_response)
 
-    def ask_agent(self, prompt):
+    def ask_agent(self, prompt, model="gpt-4"):
         max_attempts = 5
         attempts = 0
 
         while attempts < max_attempts:
             try:
                 response = openai.ChatCompletion.create(
-                    model="gpt-4",
+                    model=model,
                     temperature=0.7,
                     max_tokens=3000,
                     messages=[{"role": "user", "content": prompt}],

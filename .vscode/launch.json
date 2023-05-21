@@ -12,7 +12,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Module",
+      "name": "Python: Test Tools",
       "type": "python",
       "request": "launch",
       "module": "tests.test_tools",
