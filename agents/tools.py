@@ -127,8 +127,10 @@ def delete_file(filepath):
 
     try:
         os.remove(filepath)
-        memory_id = f"file-{filepath}"
-        memory_database.delete_memory(memory_id)
+        file_memory = memory_database.search_file(filepath)
+
+        if file_memory:
+            memory_database.delete_memory(file_memory["ids"][0])
         return f"Successfully deleted file at {filepath}"
     except FileNotFoundError:
         return f"Error: File not found at {filepath}"
