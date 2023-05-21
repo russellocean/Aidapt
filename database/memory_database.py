@@ -1,132 +1,116 @@
+import hashlib
 import json
 import os
-import time
 from typing import Any, Dict, List, Optional
 
-import openai
-import pinecone
+import chromadb
+from chromadb.config import Settings
 from dotenv import load_dotenv
 
 # Load the variables from the .env file
 load_dotenv()
 
-# Access the variables using the os module
-PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
-PINECONE_ENV = os.getenv("PINECONE_ENV")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+COLLECTION_NAME = "memory_collection"
 
 embed_model = "text-embedding-ada-002"
 
 
 class MemoryDatabase:
     """
-    A class to represent a memory database using Pinecone.
+    A class to represent a memory database using Chroma.
 
     ...
 
     Attributes
     ----------
-    index_name : str
-        the name of the Pinecone index
-    index : pinecone.Index
-        the Pinecone index object
-    ids : set
-        a set of all the IDs in the index
+    client : chromadb.Client
+        the Chroma client object
+    collection : chromadb.Collection
+        the Chroma collection object
 
     Methods
     -------
     close():
-        Deletes the Pinecone index.
-    create_embeddings(inputs: List[str]) -> List[List[float]]:
-        Creates embeddings for the given input strings.
+        Deletes the Chroma collection.
     get_next_id() -> str:
         Generates a new unique integer ID.
     store_memories(memories: List[dict]):
-        Stores the given memories in the index.
+        Stores the given memories in the collection.
     stringify_content(content) -> str:
         Converts the given content into a string.
     query_memories(query: str = None, id: str = None, top_k: int = 5, threshold: float = None) -> List[dict]:
-        Queries the index and returns the results.
+        Queries the collection and returns the results.
     update_memory(memory_id: str, new_content: Optional[str] = None, new_metadata: Optional[Dict[str, Any]] = None):
-        Updates a memory in the index.
+        Updates a memory in the collection.
     delete_memory(memory_id: str):
-        Deletes a memory from the index.
+        Deletes a memory from the collection.
     clear_all_memories():
-        Deletes all memories from the index.
+        Deletes all memories from the collection.
     query_relevant_memories(task: str, message: str, threshold: float = 0.7, top_k: int = 5) -> List[str]:
-        Queries the index for memories relevant to the given task and message.
+        Queries the collection for memories relevant to the given task and message.
     add_file_memory(file_path: str, content: str, metadata: Optional[Dict[str, Any]] = None):
-        Adds a memory for a file to the index.
+        Adds a memory for a file to the collection.
     fetch(memory_id: str) -> Dict[str, Any]:
-        Fetches a memory from the index by ID.
+        Fetches a memory from the collection by ID.
     """
 
-    def __init__(self, index_name: str):
+    def __init__(self):
         """Initializes a new MemoryDatabase object."""
-        pinecone.init(api_key=PINECONE_API_KEY, environment=PINECONE_ENV)
-        if index_name not in pinecone.list_indexes():
-            print(f"Creating index {index_name}...")
-            pinecone.create_index(index_name, dimension=1536, metric="cosine")
-            # Wait an additional 5 seconds for the index to be created
-            time.sleep(5)  # wait for 5 seconds
-        elif index_name in pinecone.list_indexes():
-            print(f"Index {index_name} already exists. Deleting and recreating...")
-            pinecone.delete_index(index_name)
-            print(f"Creating index {index_name}...")
-            pinecone.create_index(index_name, dimension=1536, metric="cosine")
-            # Wait an additional 5 seconds for the index to be created
-            time.sleep(5)  # wait for 5 seconds
+        client_settings = Settings(
+            chroma_db_impl="duckdb+parquet",
+            persist_directory=".chromadb/",
+        )
+        self.client = chromadb.Client(client_settings)
+        self.collection = self.client.get_or_create_collection(
+            name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+        )
 
-        # Connect to index
-        self.index_name = index_name
-        self.index = pinecone.Index(index_name)
-
-        self.ids = set()  # used to store all the IDs
+        # Try inserting a dummy document to trigger index creation
+        self.collection.upsert(
+            documents=["dummy document"],
+            metadatas=[{"dummy": "metadata"}],
+            ids=["dummy_id"],
+        )
+        self.collection.delete(ids=["dummy_id"])  # remove the dummy document
 
     def close(self):
-        """Deletes the Pinecone index."""
-        pinecone.delete_index(self.index_name)
+        """Deletes the Chroma collection."""
+        self.client.delete_collection(name=COLLECTION_NAME)
 
-    def create_embeddings(self, inputs: List[str]) -> List[List[float]]:
-        """Creates embeddings for the given input strings."""
-        embeddings = []
-        for input_text in inputs:
-            # response = self.openai.Embed.create(model="text-embedding-ada-002", input=input_text)
-            response = openai.Embedding.create(input=[input_text], engine=embed_model)
-            embeddings.append(response["data"][0]["embedding"])
-        return embeddings
-
-    def get_next_id(self):
+    def get_next_id(self) -> str:
         """Generates a new unique integer ID."""
-        max_int_id = max(int(id) for id in self.ids if id.isdigit())
+        ids = [str(idx) for idx, doc in enumerate(self.collection.peek()["documents"])]
+        max_int_id = max(int(id) for id in ids if id.isdigit())
         return str(max_int_id + 1)
 
     def store_memories(self, memories: List[dict]):
-        """Stores the given memories in the index."""
-        non_empty_memories = [memory for memory in memories if memory["content"]]
-        embeddings = self.create_embeddings(
-            [memory["content"] for memory in non_empty_memories]
-        )
+        """Stores the given memories in the collection."""
 
-        # Create a list of tuples to store vector information
-        vector_data = []
-        for memory, embedding in zip(memories, embeddings):
+        # Prepare the data for adding to the collection
+        documents = []
+        metadatas = []
+        ids = []
+
+        for memory in memories:
             # Create a copy of the metadata and add the content
             metadata = memory.get("metadata", {}).copy()
             metadata["content"] = memory["content"]
 
-            # If no ID is provided, generate a new one
-            memory_id = memory.get("id")
-            if memory_id is None:
-                memory_id = self.get_next_id()
-            # Convert the memory id to a string
-            memory_id_str = str(memory_id)
+            # Append the data to the corresponding lists
+            documents.append(memory["content"])
+            metadatas.append(metadata)
 
-            # Add the new ID to the set of IDs
-            self.ids.add(memory_id_str)
+            # If an ID is provided, append it to the IDs list
+            if "id" in memory:
+                ids.append(memory["id"])
 
-            vector_data.append((memory_id_str, embedding, metadata))
-        # Use the upsert function with the list of tuples
-        self.index.upsert(vector_data)
+        # Add the data to the collection
+        self.collection.upsert(
+            documents=documents,
+            metadatas=metadatas,
+            ids=ids if ids else None,
+        )
 
     def stringify_content(self, content):
         """Converts the given content into a string."""
@@ -142,29 +126,25 @@ class MemoryDatabase:
             return str(content)
 
     def query_memories(
-        self, query: str = None, id: str = None, top_k: int = 5, threshold: float = None
+        self, query: str = None, id: str = None, top_k: int = 5
     ) -> List[dict]:
-        """Queries the index and returns the results."""
+        """Queries the collection and returns the results."""
+
+        if self.collection.count() < top_k:
+            top_k = self.collection.count()
+
         if query is not None:
-            embedding = self.create_embeddings([query])[0]
-            results = self.index.query(
-                vector=embedding,
-                top_k=top_k,
-                include_metadata=True,
-                include_values=False,
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=top_k,
+                include=["documents", "metadatas"],
             )
         elif id is not None:
-            results = self.index.query(
-                id=id, top_k=top_k, include_metadata=True, include_values=False
-            )
+            results = self.collection.get(ids=[id], include=["documents", "metadatas"])
         else:
             raise ValueError("You must provide either 'query' or 'id'.")
 
-        if threshold is not None:
-            results.matches = [
-                result for result in results.matches if result["score"] >= threshold
-            ]
-        return results.matches
+        return results
 
     def update_memory(
         self,
@@ -172,37 +152,46 @@ class MemoryDatabase:
         new_content: Optional[str] = None,
         new_metadata: Optional[Dict[str, Any]] = None,
     ):
-        """Updates a memory in the index."""
-        """
-        Currently the update function does not work. However the upsert function does work, and behaves the same if the id already exists.
-        TODO - Fix the update function
-        """
+        """Updates a memory in the collection."""
+        update_data = {}
+
         if new_content:
-            new_embedding = self.create_embeddings([new_content])[0]
-            self.index.update(id=memory_id, values=new_embedding)
+            update_data["documents"] = [new_content]
 
         if new_metadata:
-            self.index.update(id=memory_id, set_metadata=new_metadata)
+            update_data["metadatas"] = [new_metadata]
+
+        if new_content or new_metadata:
+            self.collection.upsert(
+                ids=[memory_id],
+                metadatas=update_data.get("metadatas"),
+                documents=update_data.get("documents"),
+            )
 
     def delete_memory(self, memory_id: str):
-        """Deletes a memory from the index."""
-        self.index.delete(ids=[memory_id])
-        # Also remove the deleted ID from the set of IDs
-        self.ids.remove(memory_id)
+        """Deletes a memory from the collection."""
+        self.collection.delete(ids=[memory_id])
 
     def clear_all_memories(self):
-        """Deletes all memories from the index."""
-        for memory_id in list(self.ids):  # iterate over a copy of the set
-            self.delete_memory(memory_id)
+        """Deletes all memories from the collection."""
+        count = self.collection.count()
+
+        while count > 0:
+            # Peek at up to 10 items in the collection
+            items = self.collection.peek()
+
+            # Extract the ids and delete the items
+            ids = items["ids"]
+            self.collection.delete(ids=ids)
+
+            # Update the count
+            count = self.collection.count()
 
     def query_relevant_memories(
-        self, task: str, message: str, threshold: float = 0.7, top_k: int = 5
+        self, task: str, message: str, top_k: int = 5
     ) -> List[str]:
         """
-        TODO - Eventually when we recieve a higher token model we should include file search again. Currently files are too large to be included in the search.
-
-        Queries the index for memories relevant to the given task and message. It excludes
-        memories with IDs that have a file prefix.
+        Queries the collection for memories relevant to the given task and message.
 
         Args:
             task (str): The task for which to search relevant memories.
@@ -214,33 +203,29 @@ class MemoryDatabase:
             List[str]: The list of relevant memories.
         """
 
-        # Define the query and initial number of results to get
-        # We need to fetch more results than top_k because we might exclude some
         query = f"{task} {message}"
-        initial_top_k = top_k * 2  # Assume that at most half the results will be files
-
-        # Query for initial_top_k memories
-        results = self.query_memories(query, top_k=initial_top_k)
+        results = self.query_memories(query, top_k=top_k)
 
         relevant_memories = []
-        for result in results:
-            # Only include the result if it is above the threshold and doesn't start with 'file-'
-            if result["score"] >= threshold and not result["id"].startswith("file-"):
-                metadata = result["metadata"]
-                memory_str = f"  ID: {result['id']}, Content: {metadata['content']}, Metadata: {metadata}, Score: {result['score']}"
-                relevant_memories.append(memory_str)
-
-                # Stop appending to relevant_memories if we already have top_k entries
-                if len(relevant_memories) == top_k:
-                    break
+        for idx in range(len(results["ids"])):
+            memory_str = f"ID: {results['ids'][idx]}, Content: {results['documents'][idx]}, Metadata: {results['metadatas'][idx]}"
+            relevant_memories.append(memory_str)
 
         return relevant_memories
 
     def add_file_memory(
         self, file_path: str, content: str, metadata: Optional[Dict[str, Any]] = None
     ):
-        """Adds a memory for a file to the index."""
-        memory_id = f"file-{file_path}"
+        """Adds a memory for a file to the collection."""
+
+        # Generate a unique ID from the file name using SHA-256 hash function
+        # Convert the SHA-256 hash to an integer and take modulus to keep the result in a reasonable range
+        sha256_hash = hashlib.sha256(file_path.encode()).hexdigest()
+        memory_id = int(sha256_hash, 16) % 10**12
+
+        # ChromaDB expects IDs to be strings, so convert the memory ID to a string
+        memory_id = str(memory_id)
+
         memory_content = f"File: {file_path}, Content: {content}"
         if metadata is None:
             metadata = {}
@@ -249,120 +234,106 @@ class MemoryDatabase:
         memory = {"id": memory_id, "content": memory_content, "metadata": metadata}
         self.store_memories([memory])
 
-    def fetch(self, memory_id: str):
-        """Fetches a memory from the index by ID."""
-        return self.index.fetch(ids=[memory_id])
+    def search_file(self, file_path: str) -> List[dict]:
+        """Searches for a file in the collection by its file path metadata.
+
+        Args:
+            file_path (str): The file path to search for.
+
+        Returns:
+            List[dict]: The results of the search.
+        """
+
+        # Construct the where filter for searching by file_path metadata
+        where_filter = {"metadatas.file_path": {"$eq": file_path}}
+
+        # Query the collection using the where filter
+        results = self.collection.get(where=where_filter)
+
+        return results
 
 
 def main():
-    index_name = "codebase-assistant"
+    from rich import print
+    from rich.table import Table
 
-    memory_database = MemoryDatabase(index_name)
+    def pretty_print_memory(memory):
+        """Helper function to pretty print memory data."""
+        table = Table(show_header=True, header_style="bold magenta")
+        table.add_column("ID")
+        table.add_column("Document")
+        table.add_column("Metadata")
 
-    # Store some example programming tasks
-    programming_tasks = [
-        {
-            "id": "file-test.py",
-            "content": "from typing import List\n\n\ndef reverse_string(string: str) -> str:\n    return string[::-1]\n\n\nif __name__ == '__main__':\n    print(reverse_string('Hello World'))",
-            "metadata": {"language": "Python"},
-        },
-        {
-            "id": "2",
-            "content": "Create a function to find the factorial of a number using recursion",
-            "metadata": {"language": "Python"},
-        },
-        {
-            "id": "3",
-            "content": "Write a program to find the largest element in an array",
-            "metadata": {"language": "Python"},
-        },
-        {
-            "id": "4",
-            "content": "Create a function to calculate the Fibonacci sequence using dynamic programming",
-            "metadata": {"language": "Python"},
-        },
-        {
-            "id": "5",
-            "content": "Implement a function to sort a list of integers using the bubble sort algorithm",
-            "metadata": {"language": "Python"},
-        },
+        documents = memory["documents"]
+        metadatas = memory["metadatas"]
+
+        for idx in range(len(documents)):
+            document = documents[idx]
+            metadata = metadatas[idx] if idx < len(metadatas) else None
+            table.add_row(str(idx), str(document), str(metadata))
+
+        print(table)
+
+    # Initialize the memory database
+    memory_db = MemoryDatabase()
+
+    # Print initial state
+    print("Initial state:")
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
+
+    # Store some memories
+    print("Storing memories:")
+    memories = [
+        {"id": "1", "content": "This is a memory."},
+        {"id": "2", "content": "This is another memory.", "metadata": {"tag": "test"}},
     ]
+    memory_db.store_memories(memories)
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
 
-    memory_database.store_memories(programming_tasks)
+    # Query some memories
+    print("Querying memories:")
+    query_results = memory_db.query_memories(query="memory")
+    pretty_print_memory(query_results)
+    print("\n")
 
-    # Query the database for relevant programming tasks
-    queries = [
-        "How to reverse a string in Python?",
-        "What is the best way to calculate the Fibonacci sequence?",
-        "How can I sort a list of numbers in Python?",
-        "What is the first ID in the database?",
-    ]
-
-    for query in queries:
-        print(f"Query: {query}")
-        matches = memory_database.query_memories(query)
-        print("Matches:")
-        for match in matches:
-            print(
-                f"  ID: {match['id']}, Content: {match['metadata']['content']}, Score: {match['score']}"
-            )
-        print()
-
-    print("Updating memory...")
-
-    # Update the content and metadata of a memory
-    memory_database.update_memory(
+    # Update a memory
+    print("Updating a memory:")
+    memory_db.update_memory(
         memory_id="1",
-        new_content="Implement a function to reverse a string in Python 3",
-        new_metadata={"language": "Python 3"},
+        new_content="This is an updated memory.",
+        new_metadata={"tag": "updated"},
     )
-
-    new_programming_tasks = [
-        {
-            "id": "1",
-            "content": "Implement a function to reverse a string in Python 3",
-            "metadata": {"language": "Python 3"},
-        },
-    ]
-
-    # At the moment it appears that pinecones update update function does not work. However the upsert function does work, and behaves the same if the id already exists.
-    memory_database.store_memories(new_programming_tasks)
-
-    # Query the updated memory
-    query = "How to reverse a string in Python?"
-    print(f"Query: {query}")
-    matches = memory_database.query_memories(query)
-    print("Matches:")
-    for match in matches:
-        print(
-            f"  ID: {match['id']}, Content: {match['metadata']['content']}, Score: {match['score']}"
-        )
-
-    print("Deleting memory...")
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
 
     # Delete a memory
-    memory_database.delete_memory("1")
+    print("Deleting a memory:")
+    memory_db.delete_memory(memory_id="1")
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
 
-    # Query the deleted memory
-    query = "How to reverse a string in Python?"
-    print(f"Query: {query}")
-    matches = memory_database.query_memories(query)
-    print("Matches:")
-    for match in matches:
-        print(
-            f"  ID: {match['id']}, Content: {match['metadata']['content']}, Score: {match['score']}"
-        )
+    # Clear all memories
+    print("Clearing all memories:")
+    memory_db.clear_all_memories()
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
 
-    fetch = memory_database.query_memories(id="file-test.py")
-    print(f"Fetch by id: {fetch}")
+    # Add file memory
+    print("Adding file memory:")
+    memory_db.add_file_memory(file_path="file.txt", content="This is file content.")
+    pretty_print_memory(memory_db.collection.peek())
+    print("\n")
 
-    print("Deleting index...")
+    # Fetch a memory
+    print("Fetching a memory:")
+    # fetched_memory = memory_db.fetch(memory_id="file-file.txt")
+    # print(fetched_memory)
+    # print("\n")
 
-    # Delete the index
-    # Database gets deleted when the MemoryDatabase object is deleted
-    # pinecone.delete_index(index_name)
-
-    print("Done!")
+    # Close the database
+    memory_db.close()
 
 
 if __name__ == "__main__":

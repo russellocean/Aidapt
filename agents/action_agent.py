@@ -74,7 +74,7 @@ class ActionAgent(Agent):
 
         # Build the prompt for the Action Agent.
         prompt = self.build_prompt(task=task, message=message, task_stack=task_stack)
-        self.callback("prompt", prompt)
+        # self.callback("prompt", prompt)
 
         # Ask the AI agent using the built prompt.
         response = self.process_input(prompt)

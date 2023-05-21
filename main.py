@@ -16,11 +16,9 @@ def main():
     # Set the callback for the Agent class, dont set output raw steps to console.
     Agent.set_callback(display_intermediate_response)
 
-    # Set the name of the index to use for the memory database.
-    index_name = "codebase-assistant"
-
     # Create the global memory database.
-    memory_database = MemoryDatabase(index_name)
+    memory_database = MemoryDatabase()
+    memory_database.clear_all_memories()
 
     # Set the memory database for the Agent class.
     Agent.set_memory_database(memory_database)

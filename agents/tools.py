@@ -159,11 +159,10 @@ def rename_file(old_filepath, new_filepath):
 def view_file(filepath):
     memory_database = Agent.get_memory_database()
 
-    memory_id = f"file-{filepath}"
-    file_memory = memory_database.query_memories(id=memory_id, top_k=1, threshold=0.9)
+    file_memory = memory_database.search_file(filepath)
 
-    if file_memory:
-        content = file_memory[0]["metadata"]["content"]
+    if file_memory["ids"]:
+        content = file_memory["metadatas"][0]["content"]
     elif os.path.isfile(filepath):
         with open(filepath, "r") as file:
             content = file.read()
