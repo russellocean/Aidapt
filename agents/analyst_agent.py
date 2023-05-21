@@ -29,7 +29,7 @@ class AnalystAgent(Agent):
 
         response = self.process_input(prompt)
 
-        self.callback("info", response)
+        self.callback("analyst", response)
 
         return self.process_response(response)
 

@@ -323,6 +323,7 @@ def display_task_report(task_report):
 def display_analyst_message(message):
     console.print("\n[bold green]Analyst Message:[/bold green]")
     table = Table(box=rich.box.ROUNDED, pad_edge=True)
-    table.add_column("Message", style="bold blue")
-    table.add_row(message)
+    for key, value in message.items():
+        table.add_column(key.capitalize(), style="bold blue")
+        table.add_row(str(value))
     console.print(table)

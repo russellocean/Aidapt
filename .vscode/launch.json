@@ -19,5 +19,16 @@
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"
     }
+  ],
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Analysis Agent",
+      "type": "python",
+      "request": "launch",
+      "module": "agents.analyst_agent",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
   ]
 }
