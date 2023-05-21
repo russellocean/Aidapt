@@ -3,6 +3,7 @@ from agents.manager_agent import AgentManager
 from database.codebase_database import convert_to_database
 from database.memory_database import MemoryDatabase
 from ui.user_interface import (
+    ask_restart_project_context,
     choose_project_source,
     clone_repository,
     display_intermediate_response,
@@ -18,10 +19,15 @@ def main():
 
     # Create the global memory database.
     memory_database = MemoryDatabase()
-    memory_database.clear_all_memories()
 
     # Set the memory database for the Agent class.
     Agent.set_memory_database(memory_database)
+
+    # New Step: Ask user if they want to restart project context
+    restart_project_context = ask_restart_project_context()
+    if restart_project_context:
+        # Clear memory database
+        memory_database.clear_all_memories()
 
     # Welcome the user to
     # Step 1: Initialize project

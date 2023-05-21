@@ -37,6 +37,13 @@ def choose_project_source():
             )
 
 
+def ask_restart_project_context():
+    display_prompt("Do you want to restart your project context? (yes/no)")
+    choices = ["yes", "no"]
+    user_choice = receive_choice(choices)
+    return user_choice == "yes"
+
+
 def display_intermediate_response(output_type, feedback=None):
     if output_type == "response":
         # Display AI response

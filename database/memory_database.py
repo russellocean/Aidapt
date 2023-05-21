@@ -202,6 +202,8 @@ class MemoryDatabase:
         Returns:
             List[str]: The list of relevant memories.
         """
+        if self.collection.count() < top_k:
+            top_k = self.collection.count()
 
         query = f"{task} {message}"
         results = self.query_memories(query, top_k=top_k)
