@@ -14,38 +14,40 @@ from ui.user_interface import (
 
 
 def main():
-    # Set the callback for the Agent class, dont set output raw steps to console.
+    # Step 1: Set the callback for the Agent class. This is necessary for processing and interacting with the agent responses.
+    # Note: We are not outputting raw steps to the console.
     Agent.set_callback(display_intermediate_response)
 
-    # Create the global memory database.
+    # Step 2: Create the global memory database. This will store the states and data that the AI agent needs to remember across interactions.
     memory_database = MemoryDatabase()
 
-    # Set the memory database for the Agent class.
+    # Step 3: Set the memory database for the Agent class. This lets the agent access and interact with the memory database we just created.
     Agent.set_memory_database(memory_database)
 
-    # New Step: Ask user if they want to restart project context
+    # Step 4: Ask the user if they want to restart the project context. If yes, the memory database is cleared to start afresh.
     restart_project_context = ask_restart_project_context()
     if restart_project_context:
-        # Clear memory database
+        # Clear the entire memory database, erasing any previous context or state.
         memory_database.clear_all_memories()
 
-    # Welcome the user to
-    # Step 1: Initialize project
+    # Step 5: Prompt the user to choose the source of the project. The project can be sourced from a local folder or a remote repository.
     project_source = choose_project_source()
 
+    # Step 6: If the project is sourced from a folder, ask for the folder path.
+    # If the project is sourced from a repository, clone the repository.
     project_folder = None
     if project_source == "folder":
         project_folder = get_project_folder()
     elif project_source == "repository":
         project_folder = clone_repository()
 
-    # Step 2: Convert project to AI-friendly database
+    # Step 7: Convert the sourced project into an AI-friendly database. This will help the AI understand and interact with the codebase effectively.
     codebase_database = convert_to_database(project_folder, project_source)
 
-    # Step 3: Create Manager Agent and Action Agent with necessary tools
+    # Step 8: Create an instance of the Manager Agent. This agent is responsible for managing the high-level operations and interactions.
     manager_agent = AgentManager()
 
-    # Step 4: Begin interaction loop between user and AI agent
+    # Step 9: Begin the interaction loop between the user and the AI agent. This is where the bulk of the AI-user interaction happens.
     interaction_loop(manager_agent, codebase_database)
 
 
