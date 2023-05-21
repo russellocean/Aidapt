@@ -76,11 +76,11 @@ class Agent:
         # Each agent should override this method to provide its own prompt.
         raise NotImplementedError("build_prompt() should be implemented by each agent.")
 
-    def process_input(self, prompt):
-        ai_response = self.ask_agent(prompt)
+    def process_input(self, prompt, model="gpt-4"):
+        ai_response = self.ask_agent(prompt, model)
         return self.parse_response(ai_response)
 
-    def ask_agent(self, prompt, model="gpt-4"):
+    def ask_agent(self, prompt, model):
         max_attempts = 5
         attempts = 0
 

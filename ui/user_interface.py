@@ -87,6 +87,9 @@ def display_intermediate_response(output_type, feedback=None):
     elif output_type == "task_report":
         # Display a task report
         display_task_report(feedback)
+    elif output_type == "analyst":
+        # Display an analyst message
+        display_analyst_message(feedback)
     else:
         display_prompt(
             prompt_text=f"{output_type} is an invalid output type. ", style="bold red"
@@ -314,4 +317,12 @@ def display_task_report(task_report):
     for line in report_lines:
         table.add_row(line)
 
+    console.print(table)
+
+
+def display_analyst_message(message):
+    console.print("\n[bold green]Analyst Message:[/bold green]")
+    table = Table(box=rich.box.ROUNDED, pad_edge=True)
+    table.add_column("Message", style="bold blue")
+    table.add_row(message)
     console.print(table)
