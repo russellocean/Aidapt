@@ -84,21 +84,36 @@ def read_prompt(file_path, prompt_name, **variables):
         return prompt
 
 
-def build_analyst_prompt(input_data, agent_name):
-    """
-    Builds an analyst prompt from given input_data.
-
-    Args:
-        input_data (dict): Input data for the prompt.
-
-    Returns:
-        str: The built analyst prompt.
-    """
+def build_analyst_prompt(
+    caller_agent,
+    input_data,
+    project_summary=None,
+    directed_agent=None,
+    task=None,
+    message=None,
+    memory_lookup=None,
+):
+    if project_summary is None:
+        project_summary = "No project summary available."
+    if directed_agent is None:
+        directed_agent = caller_agent
+    if task is None:
+        task = "No task available."
+    if message is None:
+        message = "No message available."
+    if memory_lookup is None:
+        memory_lookup = "No memory provided."
 
     prompt = read_prompt(
         "prompts.txt",
         "analyst_prompt",
+        caller_agent=caller_agent,
         input_data=input_data,
+        project_summary=project_summary,
+        directed_agent=directed_agent,
+        task=task,
+        message=message,
+        memory_lookup=memory_lookup,
     )
 
     return prompt

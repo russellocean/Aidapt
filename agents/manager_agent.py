@@ -173,7 +173,8 @@ class AgentManager(Agent):
 
         normalized_agent_name = normalize_agent_name(agent_name)
 
-        analysis_feedback = AnalystAgent().run(response)
+        analysis_feedback = AnalystAgent().run(response, agent_name, task, message)
+
         print(f"analysis_feedback: {analysis_feedback}")
 
         if normalized_agent_name == "actionagent":

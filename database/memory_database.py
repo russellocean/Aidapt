@@ -305,6 +305,7 @@ def main():
 
     # Initialize the memory database
     memory_db = MemoryDatabase()
+    memory_db.clear_all_memories()
 
     # Print initial state
     print("Initial state:")

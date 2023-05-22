@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import re
@@ -116,9 +117,6 @@ class Agent:
         sys.exit(1)
 
     def parse_response(self, ai_response):
-        # Replace 'True' and 'False' with 'true' and 'false'
-        ai_response = ai_response.replace("True", "true").replace("False", "false")
-
         # Use regex to extract JSON from the response
         json_match = re.search(r"({.*})", ai_response, re.DOTALL)
         if json_match is None:
@@ -128,6 +126,8 @@ class Agent:
             return "Error parsing AI response, please check the response format."
 
         json_str = json_match.group(1)
+
+        self.clean_json(ai_response)
 
         # Parse the AI response, which should be in JSON format.
         try:
@@ -144,6 +144,14 @@ class Agent:
             return f"Error parsing AI response, please check the response format. Response provided: {e}"
 
         return parsed_response
+
+    def clean_json(self, str):
+        str = (
+            str.replace("null", "None")
+            .replace("true", "True")
+            .replace("false", "False")
+        )
+        return json.dumps(ast.literal_eval(str))
 
     def execute_tools(self, tools_to_run):
         results = {}

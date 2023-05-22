@@ -1,4 +1,5 @@
 import inspect
+import json
 
 from agents.agent import Agent
 from ui.prompts import build_analyst_prompt
@@ -8,8 +9,14 @@ class AnalystAgent(Agent):
     def __init__(self):
         super().__init__()
         self.callback = self.get_callback()
+        self.caller_agent = ""
+        self.delegated_agent = ""
+        self.task = ""
+        self.message = ""
+        self.project_summary = None
+        self.memory = self.get_memory_database()
 
-    def run(self, input_data):
+    def run(self, input_data, delegated_agent=None, task=None, message=None):
         """
         Entry point for the Analyst Agent. The agent
         receives input_data as a JSON object and processes it accordingly.
@@ -20,20 +27,33 @@ class AnalystAgent(Agent):
             dict: a JSON object containing the refined task details, contextual information,
             and any relevant memory updates.
         """
-        agent_name = (
+        self.caller_agent = (
             inspect.currentframe().f_back.f_locals.get("self").__class__.__name__
         )
-        prompt = self.build_prompt(input_data, agent_name)
+
+        self.delegated_agent = delegated_agent
+        self.task = task
+        self.message = message
+
+        # If the input_data is a string, parse it to a dictionary
+        if isinstance(input_data, str):
+            input_data = json.loads(input_data)
+
+        formatted_data = self.format_json(input_data)
+
+        prompt = self.build_prompt(formatted_data)
 
         self.callback("prompt", prompt)
 
         response = self.process_input(prompt)
 
-        self.callback("analyst", response)
+        self.project_summary = self.format_project_summary(json_object=response)
 
-        return self.process_response(response)
+        self.callback("info", self.project_summary)
 
-    def build_prompt(self, input_data, agent_name):
+        return self.format_agent_interaction(json_object=response)
+
+    def build_prompt(self, input_data):
         """
         Build the prompt for the Analyst Agent based on the input_data provided.
 
@@ -42,72 +62,137 @@ class AnalystAgent(Agent):
         Returns:
             str: the prompt to be given to the AI for processing.
         """
+        memory_lookup = self.memory.query_memories(f"{self.task} {self.message}")
 
-        print(f"Caller class name: {agent_name}")
+        prompt = build_analyst_prompt(
+            caller_agent=self.caller_agent,
+            input_data=input_data,
+            project_summary=self.project_summary,
+            directed_agent=self.delegated_agent,
+            task=self.task,
+            message=self.message,
+            memory_lookup=memory_lookup,
+        )
 
-        prompt = build_analyst_prompt(input_data, agent_name)
         return prompt
 
-    def process_response(self, response):
-        """
-        Process the AI's response and format the output JSON object.
+    def format_agent_interaction(self, json_object):
+        formatted_string = ""
 
-        Args:
-            response (str): the AI's response to the prompt.
-        Returns:
-            dict: a JSON object containing the refined task details, contextual information,
-            and any relevant memory updates.
-        """
-        # Define the required keys
-        required_keys = [
-            "contextual_summary",
-            "task_instruction",
-            "relevant_memory",
-            "next_task_instruction",
-            "relevant_code",
-        ]
+        # Agent Interaction Section
+        formatted_string += "\nAgent Interaction\n"
+        ai_section = json_object["agent_interaction"]
+        for key, value in ai_section.items():
+            if isinstance(value, dict):
+                formatted_string += f"\n\t{key}\n"
+                for sub_key, sub_value in value.items():
+                    formatted_string += f"\t\t-{sub_key}: {sub_value}\n"
+            else:
+                formatted_string += f"\n\t-{key}: {value}\n"
 
-        # Initialize an empty output dictionary
-        output = {}
+        return formatted_string
 
-        # Check if the key is in the response, if it is then include it in the output
-        for key in required_keys:
-            if key in response:
-                # Extract information from the AI's response and add it to the output
-                output[key] = response.get(key, "")
+    def format_project_summary(self, json_object):
+        formatted_string = ""
 
-        return output
+        # Project Summary Section
+        formatted_string += "\nProject Summary\n"
+        ps_section = json_object["project_summary"]
+        for key, value in ps_section.items():
+            if key == "project_structure":
+                formatted_string += f"\n\t{key}\n"
+                for file, file_info in value.items():
+                    formatted_string += (
+                        f"\t\t{file} (path: {file_info['relative_path']})\n"
+                    )
+                    formatted_string += (
+                        f"\t\t\t-Description: {file_info['description']}\n"
+                    )
+                    formatted_string += f"\t\t\t-Relations: {file_info['relations']}\n"
+                    formatted_string += "\t\t\t-Functions:\n"
+                    for function in file_info["functions"]:
+                        formatted_string += f"\t\t\t\t-{function['function_name']}: {function['function_description']}\n"
+            else:
+                formatted_string += f"\n\t-{key}: {value}\n"
 
-    @staticmethod
-    def format_analyst_output(
-        contextual_summary,
-        task_instruction,
-        relevant_memory,
-        next_task_instruction,
-        relevant_code,
-    ):
-        """
-        Format the Analyst Agent's output as a single string.
+        return formatted_string
 
-        Args:
-            contextual_summary (str): a high-level summary of the current situation.
-            task_instruction (str): the specific task to be accomplished.
-            relevant_memory (str): past information that might be useful for the task.
-            next_task_instruction (str): the proposed next step based on the task instruction.
-            relevant_code (str): any piece of code that's relevant to the task.
-        Returns:
-            str: the formatted output string.
-        """
-        output = f"Contextual Summary: {contextual_summary}\n"
-        output += f"Task Instruction: {task_instruction}\n"
-        output += f"Relevant Memory: {relevant_memory}\n"
-        output += f"Next Task Instruction: {next_task_instruction}\n"
-        output += f"Relevant Code: {relevant_code}"
-        return output
+    def format_json(self, json_object):
+        formatted_string = ""
+
+        # Thoughts
+        if "thoughts" in json_object:
+            formatted_string += f"🧠 Thoughts:\n{json_object['thoughts']}\n"
+
+        # Criticisms
+        if "criticisms" in json_object:
+            formatted_string += f"💬 Criticisms:\n{json_object['criticisms']}\n"
+
+        # Tools to Run
+        if "tools_to_run" in json_object:
+            formatted_string += "🛠 Tools to Run:\n"
+            for tool in json_object["tools_to_run"]:
+                formatted_string += f"- Tool: {tool['tool']}\n"
+                if "parameters" in tool:
+                    formatted_string += f" Params: {', '.join(tool['parameters'])}\n"
+
+        # Agent Calls
+        if "agent_calls" in json_object:
+            formatted_string += "📞 Agent Calls:\n"
+            for call in json_object["agent_calls"]:
+                formatted_string += f"- Agent: {call['agent']}\n  Task: {call['task']}\n  Message: {call['message']}\n"
+
+        # Objective Met
+        if "objective_met" in json_object:
+            formatted_string += (
+                f"✅ Objective Met: {'Yes' if json_object['objective_met'] else 'No'}\n"
+            )
+
+        # Final Answer
+        if "final_answer" in json_object:
+            formatted_string += f"🔚 Final Answer:\n{json_object['final_answer']}\n"
+
+        # Current Task List
+        if "current_task_list" in json_object:
+            formatted_string += "📋 Current Task List:\n"
+            for task in json_object["current_task_list"]:
+                formatted_string += f"- Task ID: {task['task_id']}\n  Task: {task['task']}\n  Completed: {'Yes' if task['completed'] else 'No'}\n"
+
+        # Memory Updates
+        if "mem_updates" in json_object:
+            formatted_string += "💾 Memory Updates:\n"
+            for mem_update in json_object["mem_updates"]:
+                formatted_string += (
+                    f"- Action: {mem_update['action']}\n  Memory Parameters:\n"
+                )
+                formatted_string += f"- ID: {mem_update['memory_parameters']['id']}\n"
+                formatted_string += (
+                    f"- Content: {mem_update['memory_parameters']['content']}\n"
+                )
+                if "metadata" in mem_update["memory_parameters"]:
+                    formatted_string += "- Metadata:\n"
+                    for key, value in mem_update["memory_parameters"][
+                        "metadata"
+                    ].items():
+                        formatted_string += f"- {key.capitalize()}: {value}\n"
+
+        # Next Task
+        if "next_task" in json_object:
+            formatted_string += f"➡️ Next Task:\n- Task: {json_object['next_task']['task']}\n  Message: {json_object['next_task']['message']}\n"
+
+        # Result
+        if "result" in json_object:
+            formatted_string += f"📊 Result:\n{json_object['result']}\n"
+
+        return formatted_string
 
 
 def main():
+    import ast
+    import json
+
     from agents.agent import Agent
+    from database.memory_database import MemoryDatabase
     from ui.user_interface import (
         display_intermediate_response,
     )
@@ -115,15 +200,11 @@ def main():
     # Set the callback for the Agent class, dont set output raw steps to console.
     Agent.set_callback(display_intermediate_response)
 
-    # Currently not using memory
-    # Set the name of the index to use for the memory database.
-    # index_name = "codebase-assistant"
-
     # Create the global memory database.
-    # memory_database = MemoryDatabase(index_name)
+    memory_database = MemoryDatabase()
 
     # Set the memory database for the Agent class.
-    # Agent.set_memory_database(memory_database)
+    Agent.set_memory_database(memory_database)
 
     manager_response = """{
         "thoughts": "The development process will be guided by modern design principles and a focus on user experience. This includes a mobile-first approach, ensuring accessibility for all users, and optimizing for search engine visibility. The tasks will be divided into several specific subtasks, each assigned to an action agent with detailed instructions.",
@@ -214,7 +295,22 @@ def main():
         ],
     }"""
 
-    AnalystAgent().run(manager_response)
+    def clean_json(str):
+        str = (
+            str.replace("null", "None")
+            .replace("true", "True")
+            .replace("false", "False")
+        )
+        return json.dumps(ast.literal_eval(str))
+
+    manager_response = clean_json(manager_response)
+
+    AnalystAgent().run(
+        manager_response,
+        delegated_agent="Action Agent",
+        task="Write HTML code",
+        message="Write HTML structure in the index.html file. Use HTML5 semantic elements such as <header>, <nav>, <main>, <section>, <article>, and <footer>. Include a navigation menu in the <header> with links to Home, About, and Contact pages. The <main> should contain a welcome message and a brief introduction to the website. The <footer> should contain copyright information and links to social media profiles.",
+    )
 
 
 if __name__ == "__main__":
