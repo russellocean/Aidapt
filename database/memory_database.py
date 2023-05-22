@@ -281,6 +281,41 @@ class MemoryDatabase:
 
         return None
 
+    def format_query_results(self, query_result):
+        formatted_result = ""
+
+        # Get IDs, documents, and metadata # Default to empty list if key not present
+        ids = query_result.get("ids", [[]])[0]
+        documents = query_result.get("documents", [[]])[0]
+        metadatas = query_result.get("metadatas", [[]])[0]
+
+        # Ensure that the lengths of IDs, documents, and metadatas are the same
+        if len(ids) == len(documents) == len(metadatas):
+            # Iterate over the items
+            for id, doc, metadata in zip(ids, documents, metadatas):
+                formatted_result += f"ID: {id}\n"
+                formatted_result += f"Document: {doc}\n"
+                if metadata:
+                    formatted_result += "Metadata:\n"
+                    for key, value in metadata.items():
+                        # Skip if 'content' or 'file_path' field from metadata is already present in the document
+                        if (
+                            (key == "content" or key == "file_path")
+                            and value not in doc
+                        ) or key not in ["content", "file_path"]:
+                            formatted_result += f"\t{key}: {value}\n"
+                else:
+                    formatted_result += "Metadata: None\n"
+                formatted_result += (
+                    "\n"  # Add a new line after each item for readability
+                )
+        else:
+            formatted_result = (
+                "Error: The lengths of IDs, documents, and metadatas do not match."
+            )
+
+        return formatted_result
+
 
 def main():
     from rich import print
