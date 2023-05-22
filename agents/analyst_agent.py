@@ -63,6 +63,7 @@ class AnalystAgent(Agent):
             str: the prompt to be given to the AI for processing.
         """
         memory_lookup = self.memory.query_memories(f"{self.task} {self.message}")
+        memory_lookup = self.memory.format_query_results(memory_lookup)
 
         prompt = build_analyst_prompt(
             caller_agent=self.caller_agent,

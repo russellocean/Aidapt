@@ -184,9 +184,6 @@ def view_file(filepath):
 def edit_file(filepath, new_contents):
     memory_database = Agent.get_memory_database()
 
-    memory_id = f"file-{filepath}"
-    file_memory = memory_database.query_memories(id=memory_id, top_k=1)  # noqa: F841
-
     # if file_memory:
     #     # Update the file content in the memory
     #     # Currently update_memory doesn't work, so just use add_file_memory
