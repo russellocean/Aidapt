@@ -76,7 +76,7 @@ class MemoryDatabase:
 
     def close(self):
         """Deletes the Chroma collection."""
-        self.client.delete_collection(name=COLLECTION_NAME)
+        self.client.reset()
 
     def get_next_id(self) -> str:
         """Generates a new unique integer ID."""
@@ -184,9 +184,19 @@ class MemoryDatabase:
     def clear_all_memories(self):
         """Deletes all memories from the collection."""
         self.client.delete_collection(name=COLLECTION_NAME)
+        self.client.reset()
+
         self.collection = self.client.get_or_create_collection(
             name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
         )
+
+        # Try inserting a dummy document to trigger index creation
+        self.collection.upsert(
+            documents=["dummy document"],
+            metadatas=[{"dummy": "metadata"}],
+            ids=["dummy_id"],
+        )
+        self.collection.delete(ids=["dummy_id"])  # remove the dummy document
 
     def query_relevant_memories(
         self, task: str, message: str, top_k: int = 5

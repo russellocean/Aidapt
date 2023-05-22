@@ -21,14 +21,14 @@ def main():
     # Step 2: Create the global memory database. This will store the states and data that the AI agent needs to remember across interactions.
     memory_database = MemoryDatabase()
 
-    # Step 3: Set the memory database for the Agent class. This lets the agent access and interact with the memory database we just created.
-    Agent.set_memory_database(memory_database)
-
-    # Step 4: Ask the user if they want to restart the project context. If yes, the memory database is cleared to start afresh.
+    # Step 3: Ask the user if they want to restart the project context. If yes, the memory database is cleared to start afresh.
     restart_project_context = ask_restart_project_context()
     if restart_project_context:
         # Clear the entire memory database, erasing any previous context or state.
         memory_database.clear_all_memories()
+
+    # Step 4: Set the memory database for the Agent class. This lets the agent access and interact with the memory database we just created.
+    Agent.set_memory_database(memory_database)
 
     # Step 5: Prompt the user to choose the source of the project. The project can be sourced from a local folder or a remote repository.
     project_source = choose_project_source()
