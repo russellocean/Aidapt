@@ -1,10 +1,10 @@
+import os
 import unittest
 
 from rich import print as rprint
 from rich.table import Table
 from rich.traceback import install
 
-from agents.agent import Agent
 from agents.tools import (
     calculate,
     create_file,
@@ -18,15 +18,16 @@ from database.memory_database import MemoryDatabase
 install()  # Enables rich's traceback handler globally.
 
 
-TEST_FILE_PATH = "/Users/russellocean/Dev/test/test_file.txt"
-RENAMED_TEST_FILE_PATH = "/Users/russellocean/Dev/test/renamed_test_file.txt"
+# Assuming your script is located in the root directory of your project
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+
+TEST_FILE_PATH = os.path.join(PROJECT_DIR, "test/test_file.txt")
+RENAMED_TEST_FILE_PATH = os.path.join(PROJECT_DIR, "test/renamed_test_file.txt")
 
 
 # Create the global memory database.
 memory_database = MemoryDatabase()
-
-# Set the memory database for the Agent class.
-Agent.set_memory_database(memory_database)
+memory_database.clear_all_memories()
 
 
 def create_table_from_result(title, result):
