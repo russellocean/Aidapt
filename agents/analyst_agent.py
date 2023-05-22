@@ -6,6 +6,8 @@ from ui.prompts import build_analyst_prompt
 
 
 class AnalystAgent(Agent):
+    project_summary = None
+
     def __init__(self):
         super().__init__()
         self.callback = self.get_callback()
@@ -13,7 +15,7 @@ class AnalystAgent(Agent):
         self.delegated_agent = ""
         self.task = ""
         self.message = ""
-        self.project_summary = None
+
         self.memory = self.get_memory_database()
 
     def run(self, input_data, delegated_agent=None, task=None, message=None):
@@ -47,9 +49,11 @@ class AnalystAgent(Agent):
 
         response = self.process_input(prompt)
 
-        self.project_summary = self.format_project_summary(json_object=response)
+        AnalystAgent.project_summary = self.format_project_summary(json_object=response)
 
-        self.callback("info", self.project_summary)
+        self.callback("info", AnalystAgent.project_summary)
+
+        self.callback("info", self.format_agent_interaction(json_object=response))
 
         return self.format_agent_interaction(json_object=response)
 
@@ -68,7 +72,7 @@ class AnalystAgent(Agent):
         prompt = build_analyst_prompt(
             caller_agent=self.caller_agent,
             input_data=input_data,
-            project_summary=self.project_summary,
+            project_summary=AnalystAgent.project_summary,
             directed_agent=self.delegated_agent,
             task=self.task,
             message=self.message,

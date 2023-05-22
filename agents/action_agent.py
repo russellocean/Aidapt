@@ -118,7 +118,9 @@ class ActionAgent(Agent):
         return result
 
     def build_task_report(self, task, message, tool_results, result):
-        report_lines = [f"The previous was was: '{task}' with the message '{message}'."]
+        report_lines = [
+            f"The previous task was: '{task}' with the message '{message}'."
+        ]
 
         for (tool, parameters), tool_result in tool_results.items():
             parameters_str = ",".join(map(str, parameters))

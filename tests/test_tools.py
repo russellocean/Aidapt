@@ -5,6 +5,7 @@ from rich import print as rprint
 from rich.table import Table
 from rich.traceback import install
 
+from agents.agent import Agent
 from agents.tools import (
     calculate,
     create_file,
@@ -28,6 +29,8 @@ RENAMED_TEST_FILE_PATH = os.path.join(PROJECT_DIR, "test/renamed_test_file.txt")
 # Create the global memory database.
 memory_database = MemoryDatabase()
 memory_database.clear_all_memories()
+
+Agent.set_memory_database(memory_database)
 
 
 def create_table_from_result(title, result):

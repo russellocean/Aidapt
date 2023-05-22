@@ -57,9 +57,14 @@ def interaction_loop(manager_agent, codebase_database=None):
         # Step 1: Get the user input. This is what the user wants the AI to do.
         user_input = get_user_input()
 
-        # If no input is provided by the user, set a default input.
+        # If no input is provided by the user, set a default input for testing.
         if user_input == "":
-            user_input = "Write a Python program that prints 'Hello World!' in the directory /Users/russellocean/Dev/test"
+            import os
+
+            project_directory = os.path.dirname(os.path.abspath(__file__))
+            project_directory = os.path.join(project_directory, "test")
+
+            user_input = f"Write a Python program that prints 'Hello World!' in the directory {project_directory}"
 
         display_user_input(user_input)
 

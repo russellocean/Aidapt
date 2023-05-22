@@ -183,18 +183,10 @@ class MemoryDatabase:
 
     def clear_all_memories(self):
         """Deletes all memories from the collection."""
-        count = self.collection.count()
-
-        while count > 0:
-            # Peek at up to 10 items in the collection
-            items = self.collection.peek()
-
-            # Extract the ids and delete the items
-            ids = items["ids"]
-            self.collection.delete(ids=ids)
-
-            # Update the count
-            count = self.collection.count()
+        self.client.delete_collection(name=COLLECTION_NAME)
+        self.collection = self.client.get_or_create_collection(
+            name=COLLECTION_NAME, metadata={"hnsw:space": "cosine"}
+        )
 
     def query_relevant_memories(
         self, task: str, message: str, top_k: int = 5
