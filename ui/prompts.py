@@ -42,46 +42,15 @@ def build_manager_prompt(
     return prompt
 
 
-def build_action_prompt(
-    task, message, memory, tool_list=None, task_list=None, task_stack=None
-):
-    if tool_list is None:
-        tool_list = []
-    if task_stack is None:
-        task_stack = ""
-
-    relevant_memories = memory.query_relevant_memories(task, message)
-
-    if len(relevant_memories) > 0:
-        memory_prompt = "Relevant memories found:\n" + "\n".join(relevant_memories)
-    else:
-        memory_prompt = "No relevant memories were found."
-
+def build_action_prompt(information, tool_list=None):
     prompt = read_prompt(
         "prompts.txt",
         "action_prompt",
-        task=task,
-        message=message,
-        memory_prompt=memory_prompt,
+        analyst_info=information,
         tool_list=tool_list,
-        task_list=task_list,
-        task_stack=task_stack,
     )
 
     return prompt
-
-
-def read_prompt(file_path, prompt_name, **variables):
-    parent_dir = os.path.abspath(os.path.join(__file__, "../../"))
-    prompts_path = os.path.join(parent_dir, file_path)
-    with open(prompts_path, "r") as file:
-        content = file.read()
-        prompt_start = content.index(f"[{prompt_name}]") + len(prompt_name) + 2
-        prompt_end = content.index("[end]", prompt_start)
-        prompt_template = content[prompt_start:prompt_end]
-        template = Template(prompt_template)
-        prompt = template.substitute(variables)
-        return prompt
 
 
 def build_analyst_prompt(
@@ -117,3 +86,16 @@ def build_analyst_prompt(
     )
 
     return prompt
+
+
+def read_prompt(file_path, prompt_name, **variables):
+    parent_dir = os.path.abspath(os.path.join(__file__, "../../"))
+    prompts_path = os.path.join(parent_dir, file_path)
+    with open(prompts_path, "r") as file:
+        content = file.read()
+        prompt_start = content.index(f"[{prompt_name}]") + len(prompt_name) + 2
+        prompt_end = content.index("[end]", prompt_start)
+        prompt_template = content[prompt_start:prompt_end]
+        template = Template(prompt_template)
+        prompt = template.substitute(variables)
+        return prompt

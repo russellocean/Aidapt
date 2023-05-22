@@ -9,6 +9,7 @@ from agents.tools import (
 from ui.prompts import build_action_prompt
 
 from .agent import Agent
+from .analyst_agent import AnalystAgent
 from .tools import create_file, edit_file, search
 
 
@@ -54,26 +55,18 @@ class ActionAgent(Agent):
         }
         self.callback = self.get_callback()
         self.memory = self.get_memory_database()
-        self.task_list = None
 
-    def build_prompt(self, task, message, task_list=None, task_stack=None):
+    def build_prompt(self, information):
         prompt = build_action_prompt(
-            task=task,
-            message=message,
-            memory=self.memory,
+            information=information,
             tool_list=self.display_tools(),
-            task_list=self.task_list,
-            task_stack=task_stack,
         )
 
         return prompt
 
-    def run_task(self, task, message, memory=None, task_list=None, task_stack=None):
-        # Override the base class method to provide action-specific functionality.
-        self.task_list = task_list
-
+    def run_task(self, information):
         # Build the prompt for the Action Agent.
-        prompt = self.build_prompt(task=task, message=message, task_stack=task_stack)
+        prompt = self.build_prompt(information)
         # self.callback("prompt", prompt)
 
         # Ask the AI agent using the built prompt.
@@ -112,31 +105,29 @@ class ActionAgent(Agent):
             task_report = self.build_task_report(
                 task_name, message, tool_results, result
             )
+
+            analysis_feedback = AnalystAgent().run(
+                input_data=response, message=task_report
+            )
+
             self.callback("task_report", task_report)
             # Checks if task_name and message are not empty strings
             if task_name and message:
-                result = self.run_task(
-                    task=task_name,
-                    message=message,
-                    memory=self.memory,
-                    task_stack=task_report,
-                )
+                result = self.run_task(analysis_feedback)
 
         return result
 
     def build_task_report(self, task, message, tool_results, result):
-        report_lines = [
-            f"Your previous was was: '{task}' with the message '{message}'."
-        ]
+        report_lines = [f"The previous was was: '{task}' with the message '{message}'."]
 
         for (tool, parameters), tool_result in tool_results.items():
             parameters_str = ",".join(map(str, parameters))
             report_lines.append(
-                f"You ran the tool '{tool}' with the parameters '{parameters_str}' which returned the following: '{tool_result}'"
+                f"Action Agent ran the tool '{tool}' with the parameters '{parameters_str}' which returned the following: '{tool_result}'"
             )
 
         report_lines.append(
-            "Use this information to complete your next task, do not repeat previous tasks."
+            "Use this information to complete the next task, do not repeat previous tasks."
         )
 
         return "\n".join(report_lines)

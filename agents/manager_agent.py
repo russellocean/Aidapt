@@ -175,13 +175,9 @@ class AgentManager(Agent):
 
         analysis_feedback = AnalystAgent().run(response, agent_name, task, message)
 
-        print(f"analysis_feedback: {analysis_feedback}")
-
         if normalized_agent_name == "actionagent":
             self.callback("delegating", f"delegating task {task} to {agent_name}.")
-            result = ActionAgent().run_task(
-                task, message, memory=None, task_list=self.tasks
-            )
+            result = ActionAgent().run_task(analysis_feedback)
         else:
             self.callback("delegating", f"Agent {agent_name} is not supported.")
             result = f"Agent {agent_name} is not supported."

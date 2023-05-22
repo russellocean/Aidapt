@@ -7,10 +7,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/main.py",
       "console": "integratedTerminal"
-    }
-  ],
-  "version": "0.2.0",
-  "configurations": [
+    },
     {
       "name": "Python: Test Tools",
       "type": "python",
@@ -18,10 +15,7 @@
       "module": "tests.test_tools",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"
-    }
-  ],
-  "version": "0.2.0",
-  "configurations": [
+    },
     {
       "name": "Python: Analysis Agent",
       "type": "python",

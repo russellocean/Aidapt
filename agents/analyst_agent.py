@@ -80,7 +80,7 @@ class AnalystAgent(Agent):
         formatted_string = ""
 
         # Agent Interaction Section
-        formatted_string += "\nAgent Interaction\n"
+        formatted_string += "\nUsers information:\n"
         ai_section = json_object["agent_interaction"]
         for key, value in ai_section.items():
             if isinstance(value, dict):
